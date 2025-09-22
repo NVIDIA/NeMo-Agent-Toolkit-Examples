@@ -46,7 +46,7 @@ else
 fi
 
 
-if [[ ${PRE_COMMIT_RETVAL} -ne 0 || ${PY_CHECKS_RETVAL} -ne 0 ]]; then
+if [[ ${PRE_COMMIT_RETVAL} -ne 0 || ${PY_CHECKS_RETVAL} -ne 0 || ${COPYRIGHT_RETVAL} -ne 0 || ${DOCUMENTATION_RETVAL} -ne 0 ]]; then
    echo ">>>> FAILED: checks"
    exit 1
 fi
