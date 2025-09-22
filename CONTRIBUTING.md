@@ -26,7 +26,7 @@ To ensure your contribution is accepted, please follow the guidelines below.
 
 ### New Examples
 
-If you have an idea for a new example, or would like to contribute an example you have created, please enture that your example follows these general guidelines:
+If you have an idea for a new example, or would like to contribute an example you have created, please ensure that your example follows these general guidelines:
 
 1. Examples should demonstrate a specific use case or feature of the NeMo Agent Toolkit.
 2. Examples should be unique and not already covered by an existing example.
@@ -50,8 +50,11 @@ If you have found a bug in an example, please open up an issue to report the bug
 
 ## Example Requirements
 
+### Dependencies
+The example should specify all its dependencies in the `pyproject.toml` file. The versions of all dependencies, including NeMo Agent toolkit, should specify at least 2 digit (for example `nvidia-nat~=1.2`, not `nvidia-nat==1` or `nvidia-nat>=1`). Each dependency should have a license that is compatible with the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0) used by this repository.
+
 ### Organization
-Examples should follow a specified structure to maintain consistency across the repository. The recommended structure is:
+Examples should follow a specified structure to maintain consistency across the repository, the `nat workflow create` command should be used to generate the example directory structure. The recommended structure is:
 ```bash
 examples/
   $EXAMPLE_NAME/
@@ -72,7 +75,7 @@ examples/
 
 ### Documentation
 Each example must include clear documentation on how to run it. This can be provided in either:
-- A README.md file at the top level of the example directory
+- A README.md file at the top level of the example directory, the `examples/.template/README.md` file can be copied into the example directory and used as a starting point.
 - A README.ipynb Jupyter notebook that walks through the example
 
 In both cases, the documentation should include:
