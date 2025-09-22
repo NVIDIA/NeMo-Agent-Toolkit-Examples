@@ -72,7 +72,9 @@ ignore = []
 # ignore-list. The regex matches against paths and can be in Posix or Windows
 # format. Because '\\' represents the directory delimiter on Windows systems, it
 # can't be used as an escape character.
-ignore-paths = []
+ignore-paths = [
+  "examples/.template",
+]
 
 # Files or directories matching the regular expression patterns are skipped. The
 # regex matches against base names, not paths. The default value ignores Emacs
@@ -710,7 +712,7 @@ skip = [
   "models",
   "thirdparty",
 ]
-known_first_party = ["aiq"]
+known_first_party = ["nat"]
 # Need to declare known third party for namespace packages which have the same name
 known_third_party = [
   "agno",
@@ -722,7 +724,7 @@ known_third_party = [
   "semantic_kernel",
   "zep_cloud",
 ]
-namespace_packages = ["aiq", "aiq.plugins"]
+namespace_packages = ["nat", "nat.plugins"]
 
 [tool.flake8]
 filename = ["*.py"]
