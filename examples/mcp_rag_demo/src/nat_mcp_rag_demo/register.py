@@ -112,6 +112,9 @@ async def search_support_tickets_tool(config: SearchSupportTicketsConfig, builde
 async def query_by_category_tool(config: QueryByCategoryConfig, builder: Builder):
     """Query support tickets by category filter."""
 
+    # Define allowed categories to prevent injection attacks
+    ALLOWED_CATEGORIES = {"bug_report", "feature_request", "question", "incident"}
+
     class CategoryInput(BaseModel):
         category: str = Field(description="Category: bug_report, feature_request, question, or incident")
         limit: int = Field(default=config.top_k, description="Maximum number of results")
@@ -119,6 +122,11 @@ async def query_by_category_tool(config: QueryByCategoryConfig, builder: Builder
     async def _query_category(category: str, limit: int = config.top_k) -> str:
         """Query support tickets by category."""
         try:
+            # Validate category input against whitelist
+            if category not in ALLOWED_CATEGORIES:
+                return (f"Invalid category '{category}'. "
+                        f"Allowed categories: {', '.join(sorted(ALLOWED_CATEGORIES))}")
+
             milvus_client = MilvusClient(uri=config.milvus_uri)
             results = milvus_client.query(collection_name=config.collection_name,
                                           filter=f'category == "{category}"',
@@ -149,6 +157,9 @@ async def query_by_category_tool(config: QueryByCategoryConfig, builder: Builder
 async def query_by_priority_tool(config: QueryByPriorityConfig, builder: Builder):
     """Query support tickets by priority filter."""
 
+    # Define allowed priorities to prevent injection attacks
+    ALLOWED_PRIORITIES = {"critical", "high", "medium", "low"}
+
     class PriorityInput(BaseModel):
         priority: str = Field(description="Priority level: critical, high, medium, or low")
         limit: int = Field(default=config.top_k, description="Maximum number of results")
@@ -156,6 +167,11 @@ async def query_by_priority_tool(config: QueryByPriorityConfig, builder: Builder
     async def _query_priority(priority: str, limit: int = config.top_k) -> str:
         """Query support tickets by priority level."""
         try:
+            # Validate priority input against whitelist
+            if priority not in ALLOWED_PRIORITIES:
+                return (f"Invalid priority '{priority}'. "
+                        f"Allowed priorities: {', '.join(sorted(ALLOWED_PRIORITIES))}")
+
             milvus_client = MilvusClient(uri=config.milvus_uri)
             results = milvus_client.query(collection_name=config.collection_name,
                                           filter=f'priority == "{priority}"',
