@@ -92,7 +92,7 @@ This demo uses a 3-terminal architecture:
 
 - Docker (for Milvus vector database)
 - Python 3.11+
-- NVIDIA API key from [build.nvidia.com](https://build.nvidia.com/)
+- NVIDIA API key
 - Node.js (for UI)
 
 ---
@@ -108,8 +108,6 @@ uv pip install -e examples/mcp_rag_demo
 ```
 
 ### Set Up API Keys
-
-Obtain an NVIDIA API key from [build.nvidia.com](https://build.nvidia.com/):
 
 ```bash
 export NVIDIA_API_KEY=<YOUR_API_KEY>
@@ -140,7 +138,7 @@ Expected output:
 ✓ Created support_tickets collection
 ✓ Prepared 15 support tickets
 ✓ Calling NVIDIA NIM API to generate embeddings...
-✓ Generated 15 embeddings using NVIDIA NIM (nvidia/nv-embedqa-e5-v5)
+✓ Generated 15 embeddings using NVIDIA NIM (`nvidia/nv-embedqa-e5-v5`)
 ✓ Inserted 15 tickets into Milvus
 ✓ Created vector index
 ✓ Loaded collection into memory

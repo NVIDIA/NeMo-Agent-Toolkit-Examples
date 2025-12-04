@@ -103,6 +103,7 @@ PDF(s?)
 Pydantic
 PyPI
 pytest
+[Rr]eranking
 [Rr]edis
 [Rr]einstall(s?)
 [Rr]eplatform(ing)?
