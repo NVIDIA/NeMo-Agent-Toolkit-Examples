@@ -22,6 +22,7 @@ name = "nat_mcp_rag_demo"
 version = "0.1.0"
 dependencies = [
     "nvidia-nat[langchain]~=1.4",
+    "nvidia-nat[mcp]~=1.4",
     "pymilvus~=2.6",
     "langchain-nvidia-ai-endpoints~=0.3",
 ]
@@ -35,4 +36,3 @@ nat_mcp_rag_demo = "nat_mcp_rag_demo.register"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

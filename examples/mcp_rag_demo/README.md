@@ -66,12 +66,13 @@ This demo uses a 3-terminal architecture:
 3. **NAT UI**: Frontend that users interact with
 
 ```
-┌─────────────┐     MCP Protocol      ┌─────────────────┐
+┌─────────────┐         REST          ┌─────────────────┐
 │   NAT UI    │ ◄──────────────────► │  NAT UI Server  │
 │  (Browser)  │                       │  (MCP Client)   │
 └─────────────┘                       └────────┬────────┘
                                                │
-                                     Streamable-HTTP
+                                        MCP Protocol
+                                      (Streamable-HTTP)
                                                │
                                       ┌────────▼────────┐
                                       │  NAT MCP Server │
@@ -232,4 +233,3 @@ Try these queries in the UI:
 - Update the `model_name` in the LLM configuration
 - Adjust parameters such as `temperature` and `max_tokens`
 - Switch between different LLM providers (OpenAI, NIM, and so on)
-
