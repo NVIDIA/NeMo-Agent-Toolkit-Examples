@@ -67,7 +67,7 @@ This demo uses a 3-terminal architecture:
 
 ```
 ┌─────────────┐         REST          ┌─────────────────┐
-│   NAT UI    │ ◄──────────────────► │  NAT UI Server  │
+│   NAT UI    │ ◄──────────────────►  │  NAT UI Server  │
 │  (Browser)  │                       │  (MCP Client)   │
 └─────────────┘                       └────────┬────────┘
                                                │
@@ -127,6 +127,7 @@ docker-compose up -d
 ```
 
 ### Load Sample Data
+**Note:** The sample dataset is synthetic. To use your own data, modify `load_support_tickets.py` with your Milvus connection and data schema, then update the tool queries in `register.py` to match your fields.
 
 ```bash
 python examples/mcp_rag_demo/scripts/load_support_tickets.py
