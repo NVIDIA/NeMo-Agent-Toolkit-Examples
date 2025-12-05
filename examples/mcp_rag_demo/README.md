@@ -193,7 +193,7 @@ Navigate to: http://localhost:3000
 ## The 4 Tools
 
 1. `search_support_tickets`: Semantic search using NIM embeddings
-2. `query_by_category`: Filter tickets by category (bug_report, feature_request, question, incident)
+2. `query_by_category`: Filter tickets by category e.g. `bug_report`, `feature_request`, `question`, `incident`
 3. `query_by_priority`: Filter tickets by priority (critical, high, medium, low)
 4. `rerank_support_tickets`: Rerank results using NIM reranker for improved relevance
 
