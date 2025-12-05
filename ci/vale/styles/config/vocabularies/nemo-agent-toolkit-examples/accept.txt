@@ -103,6 +103,8 @@ PDF(s?)
 Pydantic
 PyPI
 pytest
+[Rr]erank
+[Rr]eranker(s?)
 [Rr]eranking
 [Rr]edis
 [Rr]einstall(s?)
