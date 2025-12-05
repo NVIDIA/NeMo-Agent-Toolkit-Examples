@@ -17,11 +17,52 @@ limitations under the License.
 
 # MCP RAG Demo with NVIDIA NIMs
 
-This example demonstrates how to expose custom tools via the Model Context Protocol (MCP) using NVIDIA NeMo Agent toolkit with NVIDIA NIM integration. It showcases semantic search, filtering, and reranking of support tickets using NVIDIA NIMs for embedding, LLM reasoning, and reranking.
+## Overview
+
+### The Problem
+
+Enterprise AI applications need to connect Large Language Models (LLMs) to external data sources and tools. However, each integration typically requires custom code, leading to:
+
+- **Fragmented tool ecosystems** - Different frameworks require different integration patterns
+- **Vendor lock-in** - Tools built for one AI platform don't work with others
+- **Security complexity** - Each integration needs its own authentication handling
+- **Maintenance burden** - Updates to tools require changes across multiple integrations
+
+### The Solution
+
+This example demonstrates how to solve these challenges using the **Model Context Protocol (MCP)** - an open standard that enables AI applications to securely connect to external tools through a unified interface. By exposing tools via MCP, they become instantly accessible to any MCP-compatible client including Claude Desktop, Cursor IDE, and custom agents.
+
+### How It Works
+
+The demo implements an **Agentic RAG (Retrieval-Augmented Generation)** system for searching support tickets:
+
+1. **User asks a question** via the chat UI (e.g., "Find critical GPU driver issues")
+2. **ReAct Agent reasons** about which tools to use and in what order
+3. **MCP Tools execute** - semantic search, filtering, and reranking operations
+4. **NVIDIA NIMs process** the requests using GPU-accelerated AI models
+5. **Agent synthesizes** the results into a coherent response
+
+### Component Selection
+
+| Component | Technology | Why This Choice |
+|-----------|------------|-----------------|
+| **Protocol** | MCP (Streamable HTTP) | Open standard with auth support, works with any MCP client |
+| **Agent Framework** | NeMo Agent Toolkit | Native MCP server/client, YAML config, production-ready |
+| **Vector Database** | Milvus | GPU-accelerated with cuVS, scales to billions of vectors |
+| **Embeddings** | `nvidia/nv-embedqa-e5-v5` | High-quality 1024-dim embeddings optimized for Q&A retrieval |
+| **LLM** | `meta/llama-3.1-70b-instruct` | Strong reasoning for agent orchestration and response generation |
+| **Reranker** | `nvidia/llama-3.2-nv-rerankqa-1b-v2` | Improves retrieval precision by reordering results by relevance |
+
+---
 
 ## Table of Contents
 
 - [MCP RAG Demo with NVIDIA NIMs](#mcp-rag-demo-with-nvidia-nims)
+  - [Overview](#overview)
+    - [The Problem](#the-problem)
+    - [The Solution](#the-solution)
+    - [How It Works](#how-it-works)
+    - [Component Selection](#component-selection)
   - [Table of Contents](#table-of-contents)
   - [Key Features](#key-features)
   - [Architecture](#architecture)
@@ -67,7 +108,7 @@ This demo uses a 3-terminal architecture:
 
 ```
 ┌─────────────┐         REST          ┌─────────────────┐
-│   NAT UI    │ ◄──────────────────► │  NAT UI Server  │
+│   NAT UI    │ ◄──────────────────►  │  NAT UI Server  │
 │  (Browser)  │                       │  (MCP Client)   │
 └─────────────┘                       └────────┬────────┘
                                                │
@@ -127,6 +168,7 @@ docker-compose up -d
 ```
 
 ### Load Sample Data
+**Note:** The sample dataset is synthetic. To use your own data, modify `load_support_tickets.py` with your Milvus connection and data schema, then update the tool queries in `register.py` to match your fields.
 
 ```bash
 python examples/mcp_rag_demo/scripts/load_support_tickets.py
