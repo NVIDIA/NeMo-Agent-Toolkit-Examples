@@ -101,10 +101,10 @@ This demo uses a 3-terminal architecture:
 
 ### Install this Workflow
 
-From the root directory of the NeMo Agent toolkit library, run:
+From the root directory of the NeMo Agent Toolkit Examples repository, run:
 
 ```bash
-uv pip install -e examples/mcp_rag_demo
+uv pip install --prerelease=allow -e examples/mcp_rag_demo
 ```
 
 ### Set Up API Keys
