@@ -241,6 +241,10 @@ document_ingest_vdb:
   extract_images: false
 ```
 
+> **Note on Embedding URLs:** The configs use different embedding URLs because of Docker networking:
+> - `document_ingest_vdb` uses `http://embedding:8000/v1` - NV-Ingest runs inside Docker and reaches the embedding service via Docker's internal network
+> - `semantic_search` uses `http://localhost:8012/v1` - runs on the host machine and reaches the embedding service via the exposed port
+
 ### Configuration Reference
 
 #### Direct Mode (`nvingest_agent_direct.yml`)
@@ -253,13 +257,13 @@ functions:
     nvingest_port: 7670
     milvus_uri: http://localhost:19530
     collection_name: nv_ingest_collection
-    embedding_url: http://embedding:8000/v1
+    embedding_url: http://embedding:8000/v1  # Docker internal network
     embedding_model: nvidia/llama-3.2-nv-embedqa-1b-v2
 
   semantic_search:
     _type: milvus_semantic_search
     milvus_uri: http://localhost:19530
-    embedding_url: http://localhost:8012/v1
+    embedding_url: http://localhost:8012/v1  # Host machine access
     embedding_model: nvidia/llama-3.2-nv-embedqa-1b-v2
 
 workflow:
