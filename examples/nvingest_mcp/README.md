@@ -50,7 +50,9 @@ uv pip install -e examples/nvingest_mcp
 
 ## Run the Workflow
 
-This example includes a sample PDF file at `data/multimodal_test.pdf` for testing. The examples below use this file.
+This example includes sample PDF files in `data/` for testing.
+
+**Note:** This is a simple example demonstrating end-to-end functionality. The tool implementations in `src/` are intentionally basic to illustrate the concepts. For production use cases, you may want to extend the retrieval logic with filtering, reranking, or more sophisticated chunking strategies.
 
 This example supports three modes of operation:
 
@@ -63,12 +65,6 @@ This example supports three modes of operation:
 ### Mode 1: Direct Agent (Simplest)
 
 Tools defined directly in YAML configuration. Lowest latency, single process.
-
-```bash
-nat run \
-    --config_file examples/nvingest_mcp/configs/nvingest_agent_direct.yml \
-    --input "Ingest examples/nvingest_mcp/data/multimodal_test.pdf into the vector database"
-```
 
 #### Example Queries
 
@@ -130,16 +126,22 @@ nat mcp client tool list --url http://localhost:9901/mcp
 #### Call Tools Directly (No LLM)
 
 ```bash
-# Call semantic_search tool (returns raw document chunks)
-nat mcp client tool call semantic_search \
-    --url http://localhost:9901/mcp \
-    --json-args '{"query": "What is the dog doing?"}'
-
 # Call document_ingest_vdb tool
 nat mcp client tool call document_ingest_vdb \
     --url http://localhost:9901/mcp \
-    --json-args '{"file_path": "examples/nvingest_mcp/data/multimodal_test.pdf"}'
+    --json-args '{"file_path": "examples/nvingest_mcp/data/embedded_table.pdf"}'
 ```
+
+**Expected output:** 10 chunks uploaded to Milvus collection `nv_ingest_collection`.
+
+```bash
+# Call semantic_search tool (returns raw document chunks)
+nat mcp client tool call semantic_search \
+    --url http://localhost:9901/mcp \
+    --json-args '{"query": "What is the minimum version of xlrd and what are the notes about it?"}'
+```
+
+**Expected output:** Returns raw document chunks containing the Excel dependencies table with xlrd version 2.0.1.
 
 #### Call the Agent Workflow (With LLM Reasoning)
 
@@ -149,10 +151,10 @@ The `react_agent` workflow is also exposed as an MCP tool, allowing you to ask q
 # Ask a question and get a reasoned answer
 nat mcp client tool call react_agent \
     --url http://localhost:9901/mcp \
-    --json-args '{"query": "What is the dog doing?"}'
+    --json-args '{"query": "What is the minimum version of xlrd and what are the notes about it?"}'
 ```
 
-**Expected output:** The dog is chasing a squirrel in the front yard.
+**Expected output:** The minimum version of xlrd is 2.0.1, and the notes indicate it is used for "Reading Excel". To verify, see [embedded_table.pdf](data/embedded_table.pdf).
 
 ### Mode 3: MCP Client
 
@@ -169,22 +171,23 @@ nat mcp serve \
 #### Step 2: Run the MCP Client Workflow (Terminal 2)
 
 ```bash
-nat run \
-    --config_file examples/nvingest_mcp/configs/nvingest_mcp_client.yml \
-    --input "Search for information about animals"
+# Set your API key first
+export NVIDIA_API_KEY=<your_key>
+
+# Ingest through MCP
+nat run --config_file examples/nvingest_mcp/configs/nvingest_mcp_client.yml \
+    --input "Ingest examples/nvingest_mcp/data/test-page-form.pdf into the database"
 ```
 
-#### Example Queries through MCP Client
+**Expected output:** 1 chunk uploaded to Milvus collection `nv_ingest_collection`.
 
 ```bash
 # Search through MCP
 nat run --config_file examples/nvingest_mcp/configs/nvingest_mcp_client.yml \
-    --input "What tables are in the knowledge base?"
-
-# Ingest through MCP
-nat run --config_file examples/nvingest_mcp/configs/nvingest_mcp_client.yml \
-    --input "Ingest examples/nvingest_mcp/data/multimodal_test.pdf into the database"
+    --input "Search the knowledge base for information about Parallel Key-Value Cache Fusion and who are the authors"
 ```
+
+**Expected output:** The authors of the paper "Parallel Key-Value Cache Fusion for Position Invariant RAG" are Philhoon Oh, Jinwoo Shin, and James Thorne from KAIST AI. To verify, see [test-page-form.pdf](data/test-page-form.pdf).
 
 ## Available Tools
 
@@ -308,4 +311,4 @@ This integration enables AI agents to:
 - **Ingest documents**: Process PDFs, extract text, tables, charts, and images
 - **Build knowledge bases**: Automatically embed and store documents in Milvus VDB
 - **Semantic search**: Query the knowledge base using natural language
-- **RAG workflows**: Combine retrieval with LLM reasoning for document Q&A
+- **Retrieval workflows**: Combine retrieval with LLM reasoning for document Q&A
