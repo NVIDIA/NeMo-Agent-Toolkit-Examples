@@ -46,7 +46,7 @@ The demo implements an **Agentic RAG (Retrieval-Augmented Generation)** system f
 
 | Component | Technology | Why This Choice |
 |-----------|------------|-----------------|
-| **Protocol** | MCP (Streamable HTTP) | Open standard with auth support, works with any MCP client |
+| **Protocol** | MCP (`Streamable HTTP`) | Open standard with auth support, works with any MCP client |
 | **Agent Framework** | NeMo Agent Toolkit | Native MCP server/client, YAML config, production-ready |
 | **Vector Database** | Milvus | GPU-accelerated with cuVS, scales to billions of vectors |
 | **Embeddings** | `nvidia/nv-embedqa-e5-v5` | High-quality 1024-dim embeddings optimized for Q&A retrieval |
