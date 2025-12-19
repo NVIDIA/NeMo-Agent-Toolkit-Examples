@@ -21,15 +21,14 @@ requires = ["setuptools >= 64"]
 name = "nvingest_mcp"
 version = "0.1.0"
 dependencies = [
-    "nvidia-nat[mcp,langchain]",
+    "nvidia-nat[mcp,langchain]~=1.3",
     "nv-ingest-client",
     "llama_index",
     "llama-index-embeddings-nvidia",
     "llama-index-llms-nvidia",
     "llama-index-vector-stores-milvus",
     "pymilvus[bulk_writer,model]",  # bulk_writer: minio/azure, model: BM25EmbeddingFunction
-    "minio",
-    "azure-storage-blob",
+    "minio"
 ]
 requires-python = ">=3.11,<3.14"
 description = "NV-Ingest MCP Server + RAG Workflow Example using NeMo Agent Toolkit"
