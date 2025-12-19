@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# NV-Ingest Direct Agent Configuration
+# =============================================================================
+#
+# ReAct agent with NV-Ingest tools defined directly (no MCP).
+# Simplest mode - lowest latency.
+#
+# Usage:
+#   nat run --config_file configs/nvingest_agent_direct.yml --input "Your query"
+#
+# Requires: NV-Ingest (7670), Milvus (19530), Embedding (8012)
+#
+# =============================================================================
+
+# NV-Ingest tools
+functions:
+  # Extract content from documents (no VDB upload)
+  document_ingest:
+    _type: nvingest_document_ingest
+    nvingest_host: localhost
+    nvingest_port: 7670
+    # Extraction options (enable/disable as needed)
+    extract_text: true
+    extract_tables: true     # Uses table-structure NIM (port 8006)
+    extract_charts: true     # Uses graphic-elements NIM (port 8003)
+    extract_images: false    # Set to true for image extraction
+    text_depth: page         # 'page' or 'document'
+
+  # Extract, embed, and upload to Milvus (multimodal)
+  document_ingest_vdb:
+    _type: nvingest_document_ingest_vdb
+    nvingest_host: localhost
+    nvingest_port: 7670
+    # Extraction options
+    extract_text: true
+    extract_tables: true     # Uses table-structure NIM (port 8006)
+    extract_charts: true     # Uses graphic-elements NIM (port 8003)
+    extract_images: false    # Set to true for image extraction
+    text_depth: page
+    # VDB settings
+    milvus_uri: http://localhost:19530
+    collection_name: nv_ingest_collection
+    embedding_url: http://embedding:8000/v1
+    embedding_model: nvidia/llama-3.2-nv-embedqa-1b-v2
+    minio_endpoint: localhost:9000
+    minio_access_key: minioadmin
+    minio_secret_key: minioadmin
+
+  # Search Milvus for relevant documents
+  semantic_search:
+    _type: milvus_semantic_search
+    milvus_uri: http://localhost:19530
+    collection_name: nv_ingest_collection
+    embedding_url: http://localhost:8012/v1
+    embedding_model: nvidia/llama-3.2-nv-embedqa-1b-v2
+    top_k: 5
+
+# LLM for agent reasoning
+llms:
+  nim_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+    max_tokens: 2048
+    api_key: ${NVIDIA_API_KEY}
+
+# ReAct agent workflow
+workflow:
+  _type: react_agent
+  tool_names:
+    - document_ingest
+    - document_ingest_vdb
+    - semantic_search
+  llm_name: nim_llm
+  verbose: true
+  parse_agent_response_max_retries: 3
+
