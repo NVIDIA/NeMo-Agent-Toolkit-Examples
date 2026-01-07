@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+[project]
+name = "nat_aidp_openai_demo"
+version = "0.1.0"
+description = "AIDP Retrieval API Demo with NVIDIA NIMs - OpenAI Vector Store Search specification via MCP"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "nvidia-nat[langchain,mcp]>=1.4.0a0,<1.5.0",
+    "pymilvus~=2.6",
+    "fastmcp",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+

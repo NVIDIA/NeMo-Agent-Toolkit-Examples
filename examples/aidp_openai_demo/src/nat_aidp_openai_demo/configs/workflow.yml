@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# AIDP Retrieval API Demo - MCP Client Workflow
+#
+# This workflow demonstrates an AI agent using the AIDP Retrieval API
+# via MCP (Model Context Protocol) following the AIDP Storage API Proposal.
+#
+# Usage:
+#   # First, start the AIDP MCP Server:
+#   python src/nat_aidp_openai_demo/server.py
+#
+#   # Then run the agent:
+#   nat run --config_file src/nat_aidp_openai_demo/configs/workflow.yml \
+#       --input "Find GPU memory issues"
+
+# MCP Client connection to AIDP server
+function_groups:
+  aidp:
+    _type: mcp_client
+    server:
+      transport: streamable-http
+      url: "http://localhost:8081/mcp"
+    include:
+      - search_vector_store
+
+# LLM configuration - NVIDIA NIM
+llms:
+  nim_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0
+    max_tokens: 512
+
+# Agent workflow
+workflow:
+  _type: react_agent
+  tool_names:
+    - aidp
+  llm_name: nim_llm
+  verbose: true
+  retry_parsing_errors: true
+  max_retries: 2
+
