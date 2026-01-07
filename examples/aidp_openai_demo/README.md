@@ -310,6 +310,8 @@ export MILVUS_URI="http://your-milvus-host:19530"
 | File | Purpose |
 |------|---------|
 | `src/nat_aidp_openai_demo/server.py` | MCP server exposing `search_vector_store` tool |
+| `src/nat_aidp_openai_demo/rest_api.py` | REST API server (OpenAI-compatible endpoint) |
+| `src/nat_aidp_openai_demo/examples.py` | Comprehensive API usage examples |
 | `src/nat_aidp_openai_demo/configs/workflow.yml` | NeMo Agent Toolkit workflow configuration |
 | `scripts/load_support_tickets.py` | Data loading script for Milvus |
 
