@@ -210,3 +210,12 @@ examples/RAG/compose/volumes
 
 # End of https://www.gitignore.io/api/vim,c++,cmake,python,synology
 /.idea
+
+# Ruff
+.ruff_cache/
+
+# ALM specific - large data and model files
+industries/asset_lifecycle_management/data/
+industries/asset_lifecycle_management/moment/
+industries/asset_lifecycle_management/database/
+industries/asset_lifecycle_management/database_vanna/

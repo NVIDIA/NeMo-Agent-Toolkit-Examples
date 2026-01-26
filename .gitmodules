@@ -1,3 +1,0 @@
-[submodule "industries/asset_lifecycle_management/moment"]
-	path = industries/asset_lifecycle_management/moment
-	url = https://github.com/moment-timeseries-foundation-model/moment.git
