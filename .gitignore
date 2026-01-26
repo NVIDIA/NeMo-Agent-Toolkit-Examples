@@ -214,8 +214,15 @@ examples/RAG/compose/volumes
 # Ruff
 .ruff_cache/
 
-# ALM specific - large data and model files
-industries/asset_lifecycle_management/data/
-industries/asset_lifecycle_management/moment/
-industries/asset_lifecycle_management/database/
-industries/asset_lifecycle_management/database_vanna/
+# ALM example - exclude large data/model files
+examples/asset_lifecycle_management/data/
+examples/asset_lifecycle_management/moment/
+examples/asset_lifecycle_management/database/
+examples/asset_lifecycle_management/database_vanna/
+
+# ALM example - exclude specific markdown files (keeping README.md files)
+examples/asset_lifecycle_management/COMPARISON.md
+examples/asset_lifecycle_management/INSTALLATION.md
+examples/asset_lifecycle_management/MIGRATION_SUMMARY.md
+examples/asset_lifecycle_management/README_MIGRATION.md
+examples/asset_lifecycle_management/test_comparison_output/COMPARISON_SUMMARY.md
