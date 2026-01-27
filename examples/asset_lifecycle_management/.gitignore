@@ -14,3 +14,8 @@ configs/*.md
 # Test scripts
 test_alm_workflow.py
 test_e2b_sandbox.py
+
+# Evaluation and test output folders
+eval_output_old/
+example_eval_output/
+test_comparison_output/

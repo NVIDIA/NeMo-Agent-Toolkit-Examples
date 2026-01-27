@@ -1,9 +1,0 @@
-{
-  "test_run_timestamp": "2026-01-25 20:46:18",
-  "total_queries": 5,
-  "results": [],
-  "summary": {
-    "test_structure_validated": true,
-    "note": "Full comparison requires NAT runtime with config file"
-  }
-}
