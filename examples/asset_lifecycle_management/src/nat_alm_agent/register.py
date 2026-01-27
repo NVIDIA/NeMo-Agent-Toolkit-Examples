@@ -32,3 +32,5 @@ from .plotting import code_generation_assistant
 from .predictors import moment_anomaly_detection_tool
 from .evaluators import llm_judge_evaluator_register
 from .evaluators import multimodal_llm_judge_evaluator_register
+# NOTE: E2B code execution tool for cloud-based sandbox (alternative to local Docker)
+from .code_execution import e2b_code_execution_tool

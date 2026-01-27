@@ -48,7 +48,7 @@ async def code_generation_assistant(
 
     # Get the LLM and code execution tool from builder
     llm = await builder.get_llm(config.llm_name, wrapper_type=LLMFrameworkEnum.LANGCHAIN)
-    code_execution_fn = builder.get_function(config.code_execution_tool)
+    code_execution_fn = await builder.get_function(config.code_execution_tool)
     max_retries = config.max_retries
     
     async def _generate_and_execute_code(
@@ -151,7 +151,7 @@ GENERATE CODE ONLY. NO COMMENTS. NO EXPLANATIONS."""
                     logger.warning(f"Code appears incomplete: {code[-100:]}")
                 else:
                     # Execute the code
-                    execution_result = await code_execution_fn.acall_invoke(generated_code=code)
+                    execution_result = await code_execution_fn.ainvoke({"generated_code": code})
                     
                     if config.verbose:
                         logger.info(f"Execution result: {execution_result}")
@@ -160,7 +160,13 @@ GENERATE CODE ONLY. NO COMMENTS. NO EXPLANATIONS."""
                     process_status = execution_result.get('process_status', 'unknown')
                     raw_stdout = execution_result.get('stdout', '')
                     stderr = execution_result.get('stderr', '')
-                    
+
+                    # Convert list to string if needed (E2B returns lists)
+                    if isinstance(raw_stdout, list):
+                        raw_stdout = ''.join(raw_stdout)
+                    if isinstance(stderr, list):
+                        stderr = ''.join(stderr)
+
                     # Handle nested JSON result
                     actual_stdout, actual_stderr = raw_stdout, stderr
                     try:
