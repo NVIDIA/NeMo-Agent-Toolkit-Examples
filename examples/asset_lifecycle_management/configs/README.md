@@ -569,3 +569,208 @@ For more detailed examples, see:
 - **`config_examples.yaml`** - Complete working examples with all combinations of vector stores and databases
 - **`vanna_manager.py`** - Implementation details for connection management
 - **`vanna_util.py`** - Vector store implementations (ChromaDB and Elasticsearch)
+
+---
+
+## E2B Code Execution Test Setup
+
+This guide helps you test the E2B cloud sandbox implementation without running the full ALM workflow.
+
+### Prerequisites
+
+1. **E2B API Key**
+   - Sign up at https://e2b.dev/auth/sign-up
+   - Get your API key from https://e2b.dev/dashboard
+   - Free tier available for testing
+
+2. **Install E2B Dependencies**
+   ```bash
+   cd examples/asset_lifecycle_management
+   uv pip install -e ".[e2b]"
+   ```
+
+3. **Set Environment Variables**
+   ```bash
+   export E2B_API_KEY="your-e2b-api-key-here"
+   export NVIDIA_API_KEY="your-nvidia-api-key"  # For LLM
+   ```
+
+4. **Prepare Workspace**
+   ```bash
+   # Ensure output_data directory exists
+   mkdir -p output_data
+
+   # Copy utilities if testing utils import
+   cp -r utils_template output_data/utils
+   ```
+
+### Configuration
+
+To use E2B cloud sandbox instead of local Docker:
+
+```yaml
+functions:
+  # E2B Cloud Sandbox
+  e2b_code_execution:
+    _type: e2b_code_execution
+    e2b_api_key: "${E2B_API_KEY}"
+    workspace_files_dir: "output_data"
+    timeout: 30.0
+    max_output_characters: 2000
+
+  code_generation_assistant:
+    _type: code_generation_assistant
+    llm_name: "coding_llm"
+    code_execution_tool: "e2b_code_execution"  # Use E2B instead of local Docker
+    output_folder: "output_data"
+```
+
+### Comparison: Local Docker vs E2B Cloud
+
+| Feature | Local Docker | E2B Cloud |
+|---------|-------------|-----------|
+| Setup | Requires Docker + container | Just API key |
+| Speed (cold start) | ~2-5 seconds | ~150ms |
+| Speed (execution) | Fast | + file transfer overhead |
+| File access | Mounted volume | Upload/download |
+| Database | Direct access | Must upload |
+| Cost | Free (local resources) | API usage based |
+| Network | Not required | Required |
+
+### Troubleshooting E2B
+
+**Error: "E2B SDK not installed"**
+```bash
+uv pip install e2b-code-interpreter
+```
+
+**Error: "E2B API key not set"**
+```bash
+export E2B_API_KEY="your-key-here"
+echo $E2B_API_KEY  # Verify it's set
+```
+
+**Error: "workspace_files_dir not found"**
+```bash
+mkdir -p output_data
+```
+
+**Files not downloading**
+- Check E2B dashboard for quota limits
+- Verify file extensions in `e2b_sandbox.py` (currently: .json, .html, .png, .jpg, .csv, .pdf)
+- Check E2B sandbox logs for file creation
+
+---
+
+## SSL Certificate Setup for E2B
+
+This section explains how to ensure SSL certificates are properly configured for E2B cloud sandbox integration.
+
+### Quick SSL Certificate Check
+
+Run this on any machine to verify SSL certificates:
+
+```bash
+# Test if SSL certificates are working
+python -c "import ssl; import urllib.request; urllib.request.urlopen('https://api.e2b.dev')"
+
+# If successful, prints nothing (exit code 0)
+# If failed, shows: "SSL: CERTIFICATE_VERIFY_FAILED"
+```
+
+### SSL Setup by Environment
+
+#### Ubuntu/Debian
+
+```bash
+# Update system certificates
+sudo apt-get update
+sudo apt-get install -y ca-certificates
+
+# Update Python SSL certificates
+pip install --upgrade certifi
+
+# Verify installation
+python -c "import certifi; print('Certificates location:', certifi.where())"
+```
+
+#### macOS (Anaconda/Homebrew Python)
+
+```bash
+# Option 1: Update certifi package
+pip install --upgrade certifi
+
+# Option 2: For Anaconda Python
+conda install -c conda-forge ca-certificates certifi openssl
+
+# Verify
+python -c "import certifi; print('Certificates location:', certifi.where())"
+```
+
+#### Docker Containers
+
+Add this to your Dockerfile:
+
+```dockerfile
+# Install system certificates
+RUN apt-get update && apt-get install -y ca-certificates
+
+# Install Python certificates
+RUN pip install --upgrade certifi
+
+# Verify SSL works
+RUN python -c "import ssl; print('SSL configured')"
+```
+
+### SSL Troubleshooting
+
+**Error: "SSL: CERTIFICATE_VERIFY_FAILED"**
+
+```bash
+# Update certifi
+pip install --upgrade certifi
+
+# Set explicit certificate path
+export SSL_CERT_FILE=$(python -c "import certifi; print(certifi.where())")
+
+# Or update system certificates
+sudo apt-get install --reinstall ca-certificates  # Ubuntu/Debian
+```
+
+**Error: "certificate verify failed: unable to get local issuer certificate"**
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install --reinstall ca-certificates
+
+# Python
+pip install --upgrade certifi
+
+# Verify
+python -c "import requests; requests.get('https://api.e2b.dev')"
+```
+
+### Best Practices Checklist
+
+Before deploying E2B to a remote machine:
+
+- [ ] System CA certificates installed (`ca-certificates` package)
+- [ ] Python certifi updated (`pip install --upgrade certifi`)
+- [ ] SSL test passes (test with `urllib.request.urlopen('https://api.e2b.dev')`)
+- [ ] E2B SDK installed (`pip install e2b-code-interpreter`)
+- [ ] E2B_API_KEY environment variable set
+- [ ] Test E2B connection works (`Sandbox.create()`)
+- [ ] NAT workflow configured correctly
+- [ ] Docker containers have certificates (if using Docker)
+
+**Note**: The Asset Lifecycle Management example uses **local Docker sandbox by default**, so E2B and SSL are optional. E2B is provided as an alternative for cloud-based code execution.
+
+---
+
+## Support Resources
+
+- **NAT Documentation**: https://docs.nvidia.com/nemo-agent-toolkit/
+- **E2B Documentation**: https://e2b.dev/docs
+- **E2B Discord**: https://discord.gg/U7KEcGErtQ
+- **GitHub Issues**: https://github.com/NVIDIA/NeMo-Agent-Toolkit-Examples/issues

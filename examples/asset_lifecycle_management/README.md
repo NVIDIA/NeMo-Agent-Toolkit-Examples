@@ -431,6 +431,64 @@ To stop the sandbox when you're done, stop the Docker container:
 docker stop local-sandbox
 ```
 
+### Alternative: E2B Cloud Sandbox (No Docker Required)
+
+E2B provides cloud-hosted code execution without requiring Docker installation. This is ideal for development environments, CI/CD pipelines, or machines without Docker.
+
+**Setup:**
+
+1. **Get E2B API Key**
+   - Sign up at https://e2b.dev/auth/sign-up
+   - Get your API key from https://e2b.dev/dashboard
+
+2. **Install E2B SDK**
+   ```bash
+   uv pip install -e ".[e2b]"
+   ```
+
+3. **Set API Key**
+   ```bash
+   export E2B_API_KEY="your-e2b-api-key"
+   ```
+
+4. **Update Configuration**
+
+   In `configs/config-reasoning.yaml`, change the `code_execution_tool` to use E2B:
+
+   ```yaml
+   code_generation_assistant:
+     _type: code_generation_assistant
+     llm_name: "coding_llm"
+     code_execution_tool: "e2b_code_execution"  # Change from "code_execution" to "e2b_code_execution"
+     verbose: true
+
+   # Uncomment this section
+   e2b_code_execution:
+     _type: e2b_code_execution
+     e2b_api_key: "${E2B_API_KEY}"
+     workspace_files_dir: "output_data"
+     timeout: 30.0
+     max_output_characters: 2000
+   ```
+
+**Comparison:**
+
+| Feature | Local Docker | E2B Cloud |
+|---------|-------------|-----------|
+| Setup | Requires Docker + container | Just API key |
+| Speed (cold start) | ~2-5 seconds | ~150ms |
+| Execution | Fast (local) | + network overhead |
+| File access | Direct mount | Upload/download |
+| Database | Direct access | Must upload (~50-100MB) |
+| Cost | Free (local resources) | API usage based |
+| Network | Not required | Required |
+| Best for | Development, large databases | CI/CD, cloud deployments |
+
+**E2B Resources:**
+- Documentation: https://e2b.dev/docs
+- Configuration Guide: See `configs/README.md` for detailed E2B and SSL setup
+- Test Script: `test_e2b_sandbox.py` for standalone testing
+
 ## Workspace Utilities
 
 The Asset Lifecycle Management Agent includes a powerful **workspace utilities system** that provides pre-built, reliable functions for common data processing tasks. This eliminates the need for the code generation assistant to implement complex algorithms from scratch, resulting in more reliable and consistent results.
