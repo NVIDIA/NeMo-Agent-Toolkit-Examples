@@ -210,3 +210,19 @@ examples/RAG/compose/volumes
 
 # End of https://www.gitignore.io/api/vim,c++,cmake,python,synology
 /.idea
+
+# Ruff
+.ruff_cache/
+
+# ALM example - exclude large data/model files
+examples/asset_lifecycle_management/data/
+examples/asset_lifecycle_management/moment/
+examples/asset_lifecycle_management/database/
+examples/asset_lifecycle_management/database_vanna/
+
+# ALM example - exclude specific markdown files (keeping README.md files)
+examples/asset_lifecycle_management/COMPARISON.md
+examples/asset_lifecycle_management/INSTALLATION.md
+examples/asset_lifecycle_management/MIGRATION_SUMMARY.md
+examples/asset_lifecycle_management/README_MIGRATION.md
+examples/asset_lifecycle_management/test_comparison_output/COMPARISON_SUMMARY.md
