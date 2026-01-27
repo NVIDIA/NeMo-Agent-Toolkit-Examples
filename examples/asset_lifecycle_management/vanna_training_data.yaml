@@ -158,6 +158,9 @@ example_queries:
   - description: "Direct RUL table query with filtering"
     sql: "SELECT unit_number, RUL FROM RUL_FD001 WHERE RUL > 100 ORDER BY RUL DESC"
 
+  - description: "Retrieve all sensor readings for a specific unit (for anomaly detection)"
+    sql: "SELECT time_in_cycles, sensor_measurement_1, sensor_measurement_2, sensor_measurement_3, sensor_measurement_4, sensor_measurement_5, sensor_measurement_6, sensor_measurement_7, sensor_measurement_8, sensor_measurement_9, sensor_measurement_10, sensor_measurement_11, sensor_measurement_12, sensor_measurement_13, sensor_measurement_14, sensor_measurement_15, sensor_measurement_16, sensor_measurement_17, sensor_measurement_18, sensor_measurement_19, sensor_measurement_20, sensor_measurement_21 FROM train_FD001 WHERE unit_number = 1 ORDER BY time_in_cycles"
+
 # QUESTION-SQL PAIRS
 # ==================
 # Purpose: Train the agent to map natural language questions to specific SQL queries
@@ -186,4 +189,10 @@ question_sql_pairs:
     sql: "SELECT unit_number, time_in_cycles, (MAX(time_in_cycles) OVER (PARTITION BY unit_number) - time_in_cycles + 1) AS predicted_RUL FROM train_FD003 ORDER BY unit_number, time_in_cycles"
   
   - question: "Get ground truth RUL values for all units in test FD002"
-    sql: "SELECT unit_number, RUL FROM RUL_FD002 ORDER BY unit_number" 
+    sql: "SELECT unit_number, RUL FROM RUL_FD002 ORDER BY unit_number"
+
+  - question: "Retrieve all sensor readings for unit 1 from train_FD001 dataset"
+    sql: "SELECT time_in_cycles, sensor_measurement_1, sensor_measurement_2, sensor_measurement_3, sensor_measurement_4, sensor_measurement_5, sensor_measurement_6, sensor_measurement_7, sensor_measurement_8, sensor_measurement_9, sensor_measurement_10, sensor_measurement_11, sensor_measurement_12, sensor_measurement_13, sensor_measurement_14, sensor_measurement_15, sensor_measurement_16, sensor_measurement_17, sensor_measurement_18, sensor_measurement_19, sensor_measurement_20, sensor_measurement_21 FROM train_FD001 WHERE unit_number = 1 ORDER BY time_in_cycles"
+
+  - question: "Get all sensor data for unit 5 from test FD002 dataset for anomaly detection"
+    sql: "SELECT time_in_cycles, sensor_measurement_1, sensor_measurement_2, sensor_measurement_3, sensor_measurement_4, sensor_measurement_5, sensor_measurement_6, sensor_measurement_7, sensor_measurement_8, sensor_measurement_9, sensor_measurement_10, sensor_measurement_11, sensor_measurement_12, sensor_measurement_13, sensor_measurement_14, sensor_measurement_15, sensor_measurement_16, sensor_measurement_17, sensor_measurement_18, sensor_measurement_19, sensor_measurement_20, sensor_measurement_21 FROM test_FD002 WHERE unit_number = 5 ORDER BY time_in_cycles" 

@@ -117,9 +117,22 @@ functions:
     scaler_path: "models/scaler_model.pkl"
     model_path: "models/xgb_model_fd001.pkl"
   
+  # MOMENT-based Anomaly Detection (Default)
+  # Uses MOMENT-1-Large foundation model for local anomaly detection
   anomaly_detection:
     _type: moment_anomaly_detection_tool
     output_folder: "output_data"
+
+  # NV Tesseract Anomaly Detection (Alternative - NVIDIA NIM)
+  # Uncomment this section and change "anomaly_detection" to use "nv_tesseract_anomaly_detection"
+  # in the tool_names list and in system prompts if you want to switch to NV Tesseract
+  # Requires: NVIDIA NIM endpoint with nv-anomaly-tesseract-1.0 model
+  # nv_tesseract_anomaly_detection:
+  #   _type: nv_tesseract_anomaly_detection
+  #   llm_name: "reasoning_llm"  # NIM endpoint for NV Tesseract
+  #   model_name: "nvidia/nv-anomaly-tesseract-1.0"
+  #   lookback_period: 30  # Number of time steps to analyze
+  #   forecast_horizon: 10  # Number of time steps to forecast
 
   plot_distribution:
     _type: plot_distribution_tool
@@ -229,9 +242,13 @@ functions:
          - plot_comparison: to compare two columns of a dataset by plotting both of them on the same chart.
       
       4. **Anomaly Detection Tools**
-         - Use anomaly_detection tool for state-of-the-art foundation model-based anomaly detection using MOMENT-1-Large.
-         - **REQUIRES JSON DATA**: First use sql_retriever to get sensor data, then pass the JSON file path to anomaly_detection.
-         - **OUTPUT**: Creates enhanced sensor data with added 'is_anomaly' boolean column.
+         - Use anomaly_detection tool for state-of-the-art foundation model-based anomaly detection.
+         - **Two options available**:
+           * MOMENT-1-Large (default): Local foundation model for anomaly detection
+           * NV Tesseract (alternative): NVIDIA NIM-based anomaly detection (if configured)
+         - **MOMENT requires JSON data**: First use sql_retriever to get sensor data, then pass the JSON file path to anomaly_detection.
+         - **NV Tesseract input**: Provide unit_number and dataset_name directly (e.g., unit_number=1, dataset_name='train_FD001')
+         - **OUTPUT**: Creates enhanced sensor data with added 'is_anomaly' boolean column or anomaly analysis JSON.
          - Use plot_anomaly to create interactive visualizations of anomaly detection results.
       
       5. **Code Generation Guidelines**

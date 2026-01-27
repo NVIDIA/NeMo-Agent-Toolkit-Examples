@@ -22,7 +22,7 @@ Multi-agent architecture designed for Asset Lifecycle Management with specialize
 - **ReAct Agent Workflow**: Main orchestration using ReAct pattern for intelligent decision-making
 - **SQL Retriever Tool**: Generates SQL queries using NIM LLM for asset data retrieval
 - **RUL Prediction Tool**: XGBoost model for remaining useful life prediction to optimize maintenance scheduling
-- **Anomaly Detection Tool**: Detects anomalies in sensor data using time series foundational model for early failure detection
+- **Anomaly Detection Tool**: Detects anomalies in sensor data using time series foundation models (MOMENT-1-Large by default, NV Tesseract NIM available as alternative) for early failure detection
 - **Plotting Agents**: Multi-tool agent for data visualization and asset performance reporting
 - **Vector Database**: ChromaDB for storing table schema, Vanna training queries, and asset documentation
 
@@ -592,6 +592,91 @@ The UI is available at `http://localhost:3000`
 - Check "Enable intermediate results" and "Enable intermediate results by default" if you prefer to see all agent calls while the workflow runs
 
 **Note:** The custom modern UI (described above) provides better visualization embedding, domain-specific examples, and a more polished experience tailored for Asset Lifecycle Management workflows.
+
+## Anomaly Detection Options
+
+The Asset Lifecycle Management Agent provides two anomaly detection approaches for sensor data analysis:
+
+### MOMENT-1-Large (Default)
+
+**Overview**: Local time-series foundation model that detects anomalies without requiring external API calls.
+
+**Configuration**: Pre-configured in `configs/config-reasoning.yaml`:
+```yaml
+anomaly_detection:
+  _type: moment_anomaly_detection_tool
+  output_folder: "output_data"
+```
+
+**Usage Pattern**:
+1. Retrieve sensor data using SQL retriever (saves as JSON file)
+2. Pass JSON file path to anomaly_detection tool
+3. Tool adds 'is_anomaly' boolean column to the data
+4. Visualize with plot_anomaly tool
+
+**Example**:
+```
+Retrieve and detect anomalies in sensor 4 measurements for engine number 78 in train FD001 dataset.
+```
+
+**Advantages**:
+- No API key required
+- Fast local execution
+- Works offline
+- No usage costs
+
+### NV Tesseract (Alternative - NVIDIA NIM)
+
+**Overview**: NVIDIA's production-grade anomaly detection foundation model accessible via NIM endpoints. Provides advanced anomaly analysis with forecasting capabilities.
+
+**Setup**:
+
+1. **Update Configuration**: In `configs/config-reasoning.yaml`, uncomment the NV Tesseract section:
+
+   ```yaml
+   nv_tesseract_anomaly_detection:
+     _type: nv_tesseract_anomaly_detection
+     llm_name: "reasoning_llm"  # NIM endpoint with NV Tesseract model
+     model_name: "nvidia/nv-anomaly-tesseract-1.0"
+     lookback_period: 30  # Number of time steps to analyze
+     forecast_horizon: 10  # Number of time steps to forecast
+   ```
+
+2. **Update Tool List**: In the `data_analysis_assistant` tool_names, change `anomaly_detection` to `nv_tesseract_anomaly_detection`
+
+3. **Update System Prompt**: Change references from `anomaly_detection` to `nv_tesseract_anomaly_detection` in the system prompt
+
+**Usage Pattern**:
+- Provide unit_number and dataset_name directly
+- No need to pre-fetch data as JSON
+- Tool queries database and performs analysis
+
+**Example**:
+```
+Detect anomalies for unit 78 in train_FD001 dataset using NV Tesseract.
+```
+
+**Advantages**:
+- Production-grade accuracy
+- Includes forecasting
+- Detailed anomaly explanations
+- Identifies specific problematic sensors
+- Anomaly score (0-1 scale)
+
+**Comparison**:
+
+| Feature | MOMENT-1-Large | NV Tesseract NIM |
+|---------|----------------|------------------|
+| Setup | Pre-configured | Requires NIM access |
+| API Key | Not required | NVIDIA_API_KEY required |
+| Cost | Free (local) | API usage based |
+| Execution | Local | Cloud NIM endpoint |
+| Input | JSON file path | unit_number + dataset_name |
+| Output | Binary anomaly flags | Detailed analysis + scores |
+| Forecasting | No | Yes (configurable horizon) |
+| Best for | Quick checks, offline use | Production, detailed analysis |
+
+**Note**: Both options work with the same downstream visualization tools (plot_anomaly) and integrate seamlessly with the agentic workflow.
 
 ## Example Prompts
 
