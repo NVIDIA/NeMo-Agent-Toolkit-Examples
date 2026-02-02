@@ -43,6 +43,7 @@ Dask
 Databricks
 Datadog
 DB(s?)
+[Dd]aytona
 [Dd]eserialize
 [Dd]ev
 [Dd]evcontainer(s?)
@@ -59,6 +60,7 @@ Grafana
 groundedness
 [Gg]ranularities
 [Hh]ashable
+httpx
 [Hh]yperparameter(s?)
 [Ii]nferencing
 isort
@@ -72,6 +74,7 @@ LLM(s?)
 # https://github.com/logpai/loghub/
 Loghub
 Mem0
+matplotlib
 Milvus
 [Mm]ixin
 MLflow
@@ -85,6 +88,7 @@ NIC
 NIM(s?)
 npm
 NumPy
+openpyxl
 NVIDIA
 OAuth
 URIs
@@ -103,16 +107,20 @@ PDF(s?)
 Pydantic
 PyPI
 pytest
+[Pp]yyaml
 [Rr]erank
 [Rr]eranker(s?)
 [Rr]eranking
 [Rr]edis
 [Rr]einstall(s?)
+reportlab
 [Rr]eplatform(ing)?
 [Rr]epo
 [Rr]etarget(ed?)
 [Rr]eusability
 [Rr]untime(s?)
+[Ss]andbox(ed|es|ing)?
+seaborn
 [Ss]erializable
 [Ss]ubclassing
 [Ss]ubcard(s?)

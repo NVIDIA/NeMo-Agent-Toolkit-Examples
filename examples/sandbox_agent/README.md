@@ -182,7 +182,7 @@ The sandbox provides an isolated workspace:
 ```
 
 **Pre-installed in nat-sandbox image:**
-- Data processing: pandas, numpy, matplotlib, seaborn
+- Data processing: pandas, NumPy, matplotlib, seaborn
 - Web: requests, httpx, beautifulsoup4
 - Browser: playwright (Chromium)
 - Documents: python-pptx, python-docx, reportlab
