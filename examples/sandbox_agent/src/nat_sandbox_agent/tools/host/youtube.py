@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Host-side YouTube transcript tool.
 
 ⚠️  LEGAL WARNING ⚠️
@@ -83,9 +82,7 @@ class HostYouTubeTool:
                 return match.group(1)
         return None
 
-    async def get_transcript(
-        self, url: str, language: str = "en"
-    ) -> dict[str, Any]:
+    async def get_transcript(self, url: str, language: str = "en") -> dict[str, Any]:
         """Get transcript from a YouTube video.
 
         Args:
@@ -113,18 +110,14 @@ class HostYouTubeTool:
             # Use asyncio.to_thread to avoid blocking the event loop
             transcript = None
             try:
-                transcript_list = await asyncio.to_thread(
-                    YouTubeTranscriptApi.list_transcripts, video_id
-                )
+                transcript_list = await asyncio.to_thread(YouTubeTranscriptApi.list_transcripts, video_id)
 
                 try:
                     transcript = transcript_list.find_transcript([language])
                 except NoTranscriptFound:
                     # Fall back to auto-generated or any available
                     try:
-                        transcript = transcript_list.find_generated_transcript(
-                            [language]
-                        )
+                        transcript = transcript_list.find_generated_transcript([language])
                     except NoTranscriptFound:
                         # Get first available
                         for t in transcript_list:
@@ -152,9 +145,7 @@ class HostYouTubeTool:
                 duration = 0
                 if data:
                     last_entry = data[-1]
-                    duration = int(
-                        last_entry["start"] + last_entry.get("duration", 0)
-                    )
+                    duration = int(last_entry["start"] + last_entry.get("duration", 0))
 
                 logger.info(f"Got transcript for video {video_id}")
 
@@ -162,7 +153,7 @@ class HostYouTubeTool:
                     "status": "success",
                     "video_id": video_id,
                     "language": transcript.language,
-                    "transcript": full_text[: self._max_output_chars],
+                    "transcript": full_text[:self._max_output_chars],
                     "timestamped": "\n".join(timestamped[:500]),
                     "duration_seconds": duration,
                 }
@@ -185,9 +176,7 @@ class HostYouTubeTool:
             }
 
 
-def create_youtube_tool(
-    max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS,
-) -> StructuredTool:
+def create_youtube_tool(max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS, ) -> StructuredTool:
     """Create the YouTube transcript tool.
 
     Args:
@@ -201,10 +190,8 @@ def create_youtube_tool(
     return StructuredTool.from_function(
         coroutine=tool.get_transcript,
         name="youtube_transcript",
-        description=(
-            "Get the transcript (subtitles/captions) from a YouTube video. "
-            "Returns the full text transcript and a timestamped version. "
-            "Use this to analyze YouTube video content without watching it."
-        ),
+        description=("Get the transcript (subtitles/captions) from a YouTube video. "
+                     "Returns the full text transcript and a timestamped version. "
+                     "Use this to analyze YouTube video content without watching it."),
         args_schema=YouTubeTranscriptInput,
     )

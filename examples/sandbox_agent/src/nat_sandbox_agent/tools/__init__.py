@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tools module - Modular tool implementations.
 
 Tool Architecture:
@@ -31,13 +30,10 @@ from nat_sandbox_agent.tools.sandbox import create_sandbox_tools
 __all__ = [
     # Factory
     "create_all_tools",
-    "get_tool_descriptions",
-    # Sandbox
+    "get_tool_descriptions",  # Sandbox
     "create_sandbox_tools",
-    "SandboxToolExecutor",
-    # Host
-    "create_host_tools",
-    # Utilities
+    "SandboxToolExecutor",  # Host
+    "create_host_tools",  # Utilities
     "DEFAULT_MAX_OUTPUT_CHARS",
     "truncate_output",
 ]

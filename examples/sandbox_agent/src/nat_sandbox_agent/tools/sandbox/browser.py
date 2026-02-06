@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Browser tool for sandbox - unified web browsing and content extraction."""
 
 import json
@@ -27,6 +26,7 @@ from pydantic import Field
 from nat_sandbox_agent.tools.sandbox.executor import SandboxToolExecutor
 
 logger = logging.getLogger(__name__)
+
 
 def _escape_css_selector(selector: str) -> str:
     """Escape a CSS selector for safe embedding in Python code.
@@ -43,16 +43,16 @@ def _escape_css_selector(selector: str) -> str:
     escaped = re.sub(r'[\r\n]', ' ', escaped)
     return escaped
 
+
 class WebBrowseInput(BaseModel):
     """Input schema for web browsing."""
 
-    url: str = Field(
-        description="URL to browse."
-    )
+    url: str = Field(description="URL to browse.")
     selector: str | None = Field(
         default=None,
         description="Optional CSS selector to extract specific elements.",
     )
+
 
 async def web_browse(
     executor: SandboxToolExecutor,
@@ -145,6 +145,7 @@ asyncio.run(main())
         "error": result.stderr or "Browser operation failed",
     }
 
+
 def create_web_browse_tool(executor: SandboxToolExecutor) -> StructuredTool:
     """Create the unified web browse tool.
 
@@ -157,10 +158,8 @@ def create_web_browse_tool(executor: SandboxToolExecutor) -> StructuredTool:
     return StructuredTool.from_function(
         coroutine=lambda url, selector=None: web_browse(executor, url, selector),
         name="web_browse",
-        description=(
-            "Browse a webpage and extract information. "
-            "Returns page title and text content. "
-            "Use 'selector' to target specific CSS elements."
-        ),
+        description=("Browse a webpage and extract information. "
+                     "Returns page title and text content. "
+                     "Use 'selector' to target specific CSS elements."),
         args_schema=WebBrowseInput,
     )

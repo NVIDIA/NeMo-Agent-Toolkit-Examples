@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Factory for creating sandbox instances."""
 
 import os
@@ -159,7 +158,9 @@ def create_sandbox(config: SandboxConfig) -> BaseSandbox:
         volumes = None
         if config.volumes:
             volumes = {
-                host_path: {"bind": container_path, "mode": "rw"}
+                host_path: {
+                    "bind": container_path, "mode": "rw"
+                }
                 for host_path, container_path in config.volumes.items()
             }
 

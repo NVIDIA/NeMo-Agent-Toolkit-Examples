@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """File operation tools for sandbox."""
 
 import logging
@@ -29,7 +28,7 @@ from nat_sandbox_agent.tools.sandbox.executor import SandboxToolExecutor
 logger = logging.getLogger(__name__)
 
 # Allowed base directories for file operations (as PurePosixPath for component-aware checks)
-ALLOWED_BASE_PATHS = (PurePosixPath("/workspace"),)
+ALLOWED_BASE_PATHS = (PurePosixPath("/workspace"), )
 
 
 def _validate_path(path: str) -> str:
@@ -53,14 +52,9 @@ def _validate_path(path: str) -> str:
 
     # Use component-aware check: the path must be equal to or a child of an allowed base.
     # This prevents "/workspace2" from matching "/workspace" (unlike string startswith).
-    if not any(
-        normalized == base or base in normalized.parents
-        for base in ALLOWED_BASE_PATHS
-    ):
-        raise ValueError(
-            f"Path '{path}' is outside allowed directories. "
-            f"Allowed: {[str(p) for p in ALLOWED_BASE_PATHS]}"
-        )
+    if not any(normalized == base or base in normalized.parents for base in ALLOWED_BASE_PATHS):
+        raise ValueError(f"Path '{path}' is outside allowed directories. "
+                         f"Allowed: {[str(p) for p in ALLOWED_BASE_PATHS]}")
 
     return normalized.as_posix()
 
@@ -68,20 +62,14 @@ def _validate_path(path: str) -> str:
 class FileReadInput(BaseModel):
     """Input schema for file reading."""
 
-    path: str = Field(
-        description="Path to the file to read in the sandbox."
-    )
+    path: str = Field(description="Path to the file to read in the sandbox.")
 
 
 class FileWriteInput(BaseModel):
     """Input schema for file writing."""
 
-    path: str = Field(
-        description="Path where the file should be written."
-    )
-    content: str = Field(
-        description="Content to write to the file."
-    )
+    path: str = Field(description="Path where the file should be written.")
+    content: str = Field(description="Content to write to the file.")
 
 
 async def read_file(
@@ -175,10 +163,8 @@ def create_file_read_tool(executor: SandboxToolExecutor) -> StructuredTool:
     return StructuredTool.from_function(
         coroutine=lambda path: read_file(executor, path),
         name="file_read",
-        description=(
-            "Read the contents of a file from the sandbox. "
-            "Returns the file content as text."
-        ),
+        description=("Read the contents of a file from the sandbox. "
+                     "Returns the file content as text."),
         args_schema=FileReadInput,
     )
 
@@ -195,9 +181,7 @@ def create_file_write_tool(executor: SandboxToolExecutor) -> StructuredTool:
     return StructuredTool.from_function(
         coroutine=lambda path, content: write_file(executor, path, content),
         name="file_write",
-        description=(
-            "Write content to a file in the sandbox. "
-            "Parent directories are created automatically if needed."
-        ),
+        description=("Write content to a file in the sandbox. "
+                     "Parent directories are created automatically if needed."),
         args_schema=FileWriteInput,
     )

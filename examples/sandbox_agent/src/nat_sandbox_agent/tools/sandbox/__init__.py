@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Sandbox-side tools that run inside the Docker sandbox.
 
 These tools require sandbox isolation:
@@ -22,7 +21,6 @@ These tools require sandbox isolation:
 - file_write: Write files
 - web_browse: Browse web pages with Playwright
 """
-
 
 from langchain_core.tools import StructuredTool
 
@@ -72,13 +70,12 @@ def create_sandbox_tools(
         # Validate tool names
         unknown_tools = set(include_tools) - set(all_tools.keys())
         if unknown_tools:
-            raise ValueError(
-                f"Unknown tool names: {unknown_tools}. "
-                f"Available tools: {list(all_tools.keys())}"
-            )
+            raise ValueError(f"Unknown tool names: {unknown_tools}. "
+                             f"Available tools: {list(all_tools.keys())}")
         return [all_tools[name] for name in include_tools]
 
     return list(all_tools.values())
+
 
 __all__ = [
     "SandboxToolExecutor",

@@ -81,9 +81,7 @@ class TestSandboxToolExecutor:
         files = await executor.list_generated_files()
 
         assert files == ["/workspace/output/output.txt", "/workspace/output/data.json"]
-        mock_sandbox.run_command.assert_called_once_with(
-            "ls -1 /workspace/output", timeout=120
-        )
+        mock_sandbox.run_command.assert_called_once_with("ls -1 /workspace/output", timeout=120)
 
     @pytest.mark.asyncio
     async def test_list_generated_files_handles_exception(self, mock_sandbox):

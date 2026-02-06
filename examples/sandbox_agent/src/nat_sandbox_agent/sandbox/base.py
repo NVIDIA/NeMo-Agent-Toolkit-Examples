@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Base sandbox interface - Abstract base class for sandbox implementations."""
 
 from abc import ABC
@@ -31,9 +30,7 @@ WORKSPACE_TEMP = f"{WORKSPACE_ROOT}/temp"
 WORKSPACE_DOWNLOADS = f"{WORKSPACE_ROOT}/downloads"
 
 # Command to initialize workspace directories
-WORKSPACE_INIT_COMMAND = (
-    f"mkdir -p {WORKSPACE_INPUT} {WORKSPACE_OUTPUT} {WORKSPACE_TEMP} {WORKSPACE_DOWNLOADS}"
-)
+WORKSPACE_INIT_COMMAND = (f"mkdir -p {WORKSPACE_INPUT} {WORKSPACE_OUTPUT} {WORKSPACE_TEMP} {WORKSPACE_DOWNLOADS}")
 
 # Default script path for Python execution
 DEFAULT_SCRIPT_PATH = f"{WORKSPACE_TEMP}/_script.py"

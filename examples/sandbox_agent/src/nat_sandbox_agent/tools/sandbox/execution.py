@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Shell and Python execution tools for sandbox."""
 
 import logging
@@ -28,23 +27,22 @@ from nat_sandbox_agent.tools.sandbox.executor import SandboxToolExecutor
 
 logger = logging.getLogger(__name__)
 
+
 class ShellInput(BaseModel):
     """Input schema for shell command execution."""
 
-    command: str = Field(
-        description="The shell command to execute in the sandbox."
-    )
+    command: str = Field(description="The shell command to execute in the sandbox.")
     working_dir: str = Field(
         default=WORKSPACE_ROOT,
         description="Working directory for the command.",
     )
 
+
 class PythonInput(BaseModel):
     """Input schema for Python code execution."""
 
-    code: str = Field(
-        description="Python code to execute in the sandbox."
-    )
+    code: str = Field(description="Python code to execute in the sandbox.")
+
 
 async def execute_shell(
     executor: SandboxToolExecutor,
@@ -77,6 +75,7 @@ async def execute_shell(
         "stderr": executor.truncate(result.stderr),
         "exit_code": result.exit_code,
     }
+
 
 async def execute_python(
     executor: SandboxToolExecutor,
@@ -122,6 +121,7 @@ async def execute_python(
         "generated_files": generated_files,
     }
 
+
 def create_shell_tool(executor: SandboxToolExecutor) -> StructuredTool:
     """Create the shell command tool.
 
@@ -132,21 +132,18 @@ def create_shell_tool(executor: SandboxToolExecutor) -> StructuredTool:
         LangChain StructuredTool instance.
     """
     return StructuredTool.from_function(
-        coroutine=lambda command, working_dir=WORKSPACE_ROOT: execute_shell(
-            executor, command, working_dir
-        ),
+        coroutine=lambda command, working_dir=WORKSPACE_ROOT: execute_shell(executor, command, working_dir),
         name="shell",
-        description=(
-            "Execute bash/shell commands for SYSTEM OPERATIONS: "
-            "file management (ls, cp, mv, rm, mkdir, chmod), "
-            "package installation (pip install, apt-get), "
-            "downloads (curl, wget), "
-            "process management (ps, kill), "
-            "git operations. "
-            "Do NOT use for data processing - use python instead."
-        ),
+        description=("Execute bash/shell commands for SYSTEM OPERATIONS: "
+                     "file management (ls, cp, mv, rm, mkdir, chmod), "
+                     "package installation (pip install, apt-get), "
+                     "downloads (curl, wget), "
+                     "process management (ps, kill), "
+                     "git operations. "
+                     "Do NOT use for data processing - use python instead."),
         args_schema=ShellInput,
     )
+
 
 def create_python_tool(executor: SandboxToolExecutor) -> StructuredTool:
     """Create the Python execution tool.
@@ -160,15 +157,13 @@ def create_python_tool(executor: SandboxToolExecutor) -> StructuredTool:
     return StructuredTool.from_function(
         coroutine=lambda code: execute_python(executor, code),
         name="python",
-        description=(
-            "Execute Python code for DATA PROCESSING and COMPUTATION: "
-            "data analysis (pandas, numpy), "
-            "calculations and math, "
-            "file parsing (JSON, CSV, XML), "
-            "API calls (requests), "
-            "text processing (regex). "
-            "Generated files should be saved to /workspace/output/. "
-            "Do NOT use for simple system commands - use shell instead."
-        ),
+        description=("Execute Python code for DATA PROCESSING and COMPUTATION: "
+                     "data analysis (pandas, numpy), "
+                     "calculations and math, "
+                     "file parsing (JSON, CSV, XML), "
+                     "API calls (requests), "
+                     "text processing (regex). "
+                     "Generated files should be saved to /workspace/output/. "
+                     "Do NOT use for simple system commands - use shell instead."),
         args_schema=PythonInput,
     )

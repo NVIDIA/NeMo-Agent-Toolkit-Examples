@@ -57,15 +57,16 @@ class TestHostWebSearchTool:
         tool = HostWebSearchTool(api_key="test-key")
 
         mock_client = MagicMock()
-        mock_client.search = AsyncMock(return_value={
-            "results": [{
-                "title": "Test Result",
-                "url": "https://example.com",
-                "content": "This is a test snippet",
-                "score": 0.95,
-            }],
-            "answer": "The answer is 42",
-        })
+        mock_client.search = AsyncMock(
+            return_value={
+                "results": [{
+                    "title": "Test Result",
+                    "url": "https://example.com",
+                    "content": "This is a test snippet",
+                    "score": 0.95,
+                }],
+                "answer": "The answer is 42",
+            })
         tool._client = mock_client
 
         result = await tool.search("test query", num_results=5)

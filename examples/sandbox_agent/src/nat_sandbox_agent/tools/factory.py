@@ -12,9 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Factory for creating all agent tools (sandbox + host)."""
-
 
 from langchain_core.tools import StructuredTool
 
@@ -64,6 +62,7 @@ def create_all_tools(
         return [all_tools[name] for name in include_tools if name in all_tools]
 
     return list(all_tools.values())
+
 
 def get_tool_descriptions() -> str:
     """Get formatted descriptions of all available tools.

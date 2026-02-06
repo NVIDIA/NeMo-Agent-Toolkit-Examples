@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Host-side tools that run directly on the host machine.
 
 These tools don't require sandbox isolation and run directly on the host:
@@ -22,7 +21,6 @@ These tools don't require sandbox isolation and run directly on the host:
 This provides better security (API keys not exposed to sandbox) and
 lower latency (no Docker exec overhead).
 """
-
 
 from langchain_core.tools import StructuredTool
 
@@ -48,6 +46,7 @@ def create_host_tools(
         create_web_search_tool(api_key=tavily_api_key),
         create_youtube_tool(max_output_chars=max_output_chars),
     ]
+
 
 __all__ = [
     "create_host_tools",

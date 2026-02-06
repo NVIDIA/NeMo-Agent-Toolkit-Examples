@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Docker-based sandbox implementation."""
 
 import asyncio
@@ -22,11 +21,11 @@ import shlex
 import tarfile
 import uuid
 
+import docker
 from docker.errors import ContainerError
 from docker.errors import ImageNotFound
 from docker.errors import NotFound
 
-import docker
 from nat_sandbox_agent.sandbox.base import WORKSPACE_INIT_COMMAND
 from nat_sandbox_agent.sandbox.base import WORKSPACE_ROOT
 from nat_sandbox_agent.sandbox.base import BaseSandbox
@@ -96,9 +95,7 @@ class DockerSandbox(BaseSandbox):
                 self._client.images.get(self._image)
             except ImageNotFound:
                 logger.info(f"Pulling image: {self._image}")
-                await asyncio.get_running_loop().run_in_executor(
-                    None, self._client.images.pull, self._image
-                )
+                await asyncio.get_running_loop().run_in_executor(None, self._client.images.pull, self._image)
 
             # Container configuration
             container_config = {
@@ -123,12 +120,9 @@ class DockerSandbox(BaseSandbox):
 
             # Create and start container
             self._container = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: self._client.containers.create(**container_config)
-            )
+                None, lambda: self._client.containers.create(**container_config))
 
-            await asyncio.get_running_loop().run_in_executor(
-                None, self._container.start
-            )
+            await asyncio.get_running_loop().run_in_executor(None, self._container.start)
 
             # Initialize workspace directories
             await self.run_command(WORKSPACE_INIT_COMMAND)
@@ -148,9 +142,7 @@ class DockerSandbox(BaseSandbox):
         if self._container:
             logger.info(f"Cleaning up Docker sandbox: {self._container_name}")
             try:
-                await asyncio.get_running_loop().run_in_executor(
-                    None, lambda: self._container.remove(force=True)
-                )
+                await asyncio.get_running_loop().run_in_executor(None, lambda: self._container.remove(force=True))
                 self._container = None
             except NotFound:
                 # Container already removed
@@ -190,8 +182,7 @@ class DockerSandbox(BaseSandbox):
                         cmd=wrapped_command,
                         workdir=working_dir,
                         environment=env,
-                        demux=True,
-                    ),
+                        demux=True, ),
                 ),
                 timeout=timeout + 5,  # Give container timeout a chance to fire first
             )
@@ -263,9 +254,7 @@ class DockerSandbox(BaseSandbox):
 
         try:
             # Wrap all blocking I/O in run_in_executor
-            return await asyncio.get_running_loop().run_in_executor(
-                None, _extract_from_archive
-            )
+            return await asyncio.get_running_loop().run_in_executor(None, _extract_from_archive)
 
         except NotFound:
             raise FileNotFoundError(f"File not found: {path}") from None

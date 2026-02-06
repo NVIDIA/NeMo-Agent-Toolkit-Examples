@@ -12,9 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """System prompts for the sandbox agent."""
-
 
 SANDBOX_AGENT_SYSTEM_PROMPT = """You are a powerful AI assistant with access to an isolated \
 sandbox environment where you can execute code, browse the web, and manipulate files.
@@ -120,6 +118,7 @@ When executing tasks:
 3. Provide ONLY the final answer in the correct format
 
 Remember: You are operating in a sandboxed environment. ALWAYS use tools to solve problems - never guess or assume."""
+
 
 def get_system_prompt(
     additional_instructions: str | None = None,

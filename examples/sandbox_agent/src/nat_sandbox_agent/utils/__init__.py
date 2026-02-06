@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Utility functions for sandbox agent."""
 
 from nat_sandbox_agent.utils.answer_cleaning import clean_answer

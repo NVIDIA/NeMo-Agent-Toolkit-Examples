@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Daytona cloud-based sandbox implementation."""
 
 import asyncio
@@ -38,15 +37,15 @@ class DaytonaSandbox(BaseSandbox):
     DEFAULT_IMAGE = "daytonaio/workspace:latest"
 
     def __init__(
-        self,
-        api_key: str,
-        server_url: str = "https://api.daytona.io",
-        target: str = "us",
-        image: str = DEFAULT_IMAGE,
-        cpu: int = 2,
-        memory: int = 4,  # GB
-        disk: int = 10,  # GB
-        auto_stop_interval: int = 30,  # minutes
+            self,
+            api_key: str,
+            server_url: str = "https://api.daytona.io",
+            target: str = "us",
+            image: str = DEFAULT_IMAGE,
+            cpu: int = 2,
+            memory: int = 4,  # GB
+            disk: int = 10,  # GB
+            auto_stop_interval: int = 30,  # minutes
     ):
         """Initialize Daytona sandbox configuration.
 
@@ -79,15 +78,11 @@ class DaytonaSandbox(BaseSandbox):
                 from daytona_sdk import Daytona
                 from daytona_sdk import DaytonaConfig
 
-                config = DaytonaConfig(
-                    api_key=self._api_key,
-                )
+                config = DaytonaConfig(api_key=self._api_key, )
                 self._client = Daytona(config)
             except ImportError:
-                raise ImportError(
-                    "daytona-sdk package is required for DaytonaSandbox. "
-                    "Install it with: pip install daytona-sdk"
-                )
+                raise ImportError("daytona-sdk package is required for DaytonaSandbox. "
+                                  "Install it with: pip install daytona-sdk")
         return self._client
 
     async def start(self) -> None:
@@ -112,9 +107,7 @@ class DaytonaSandbox(BaseSandbox):
             )
 
             # Create and start the sandbox (wrap sync call to avoid blocking)
-            self._sandbox = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: client.create(params)
-            )
+            self._sandbox = await asyncio.get_running_loop().run_in_executor(None, lambda: client.create(params))
 
             # Initialize workspace directories
             await self.run_command(WORKSPACE_INIT_COMMAND)
@@ -131,9 +124,7 @@ class DaytonaSandbox(BaseSandbox):
             logger.info(f"Cleaning up Daytona sandbox: {self._sandbox.id}")
             try:
                 # Wrap sync call to avoid blocking
-                await asyncio.get_running_loop().run_in_executor(
-                    None, self._sandbox.delete
-                )
+                await asyncio.get_running_loop().run_in_executor(None, self._sandbox.delete)
                 self._sandbox = None
             except Exception as e:
                 logger.error(f"Failed to cleanup Daytona sandbox: {e}")
@@ -163,8 +154,7 @@ class DaytonaSandbox(BaseSandbox):
                         command,
                         cwd=working_dir,
                         env=env,
-                        timeout=int(timeout),
-                    ),
+                        timeout=int(timeout), ),
                 ),
                 timeout=timeout,
             )
@@ -199,9 +189,7 @@ class DaytonaSandbox(BaseSandbox):
         try:
             # Wrap sync call to avoid blocking
             # Daytona SDK uses download_file() which returns bytes
-            data = await asyncio.get_running_loop().run_in_executor(
-                None, lambda: self._sandbox.fs.download_file(path)
-            )
+            data = await asyncio.get_running_loop().run_in_executor(None, lambda: self._sandbox.fs.download_file(path))
             return data.decode("utf-8", errors="replace")
         except Exception as e:
             if "not found" in str(e).lower():
@@ -223,8 +211,7 @@ class DaytonaSandbox(BaseSandbox):
             # Wrap sync call to avoid blocking
             # Daytona SDK uses upload_file(data, path) which takes bytes
             await asyncio.get_running_loop().run_in_executor(
-                None, lambda: self._sandbox.fs.upload_file(content.encode("utf-8"), path)
-            )
+                None, lambda: self._sandbox.fs.upload_file(content.encode("utf-8"), path))
         except Exception as e:
             logger.error(f"Failed to write file {path}: {e}")
             raise

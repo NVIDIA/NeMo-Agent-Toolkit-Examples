@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Host-side web search tool using Tavily API.
 
 This tool runs on the host machine (not in the sandbox) for:
@@ -89,15 +88,12 @@ class HostWebSearchTool:
                 include_answer=True,
             )
 
-            results = [
-                {
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "snippet": r.get("content", ""),
-                    "score": r.get("score", 0),
-                }
-                for r in response.get("results", [])
-            ]
+            results = [{
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "snippet": r.get("content", ""),
+                "score": r.get("score", 0),
+            } for r in response.get("results", [])]
 
             logger.info(f"Web search returned {len(results)} results")
 
@@ -129,10 +125,8 @@ def create_web_search_tool(api_key: str | None = None) -> StructuredTool:
     return StructuredTool.from_function(
         coroutine=tool.search,
         name="web_search",
-        description=(
-            "Search the web using Tavily. Returns titles, URLs, and snippets "
-            "for the search results. Use this to find information, research topics, "
-            "or locate relevant URLs."
-        ),
+        description=("Search the web using Tavily. Returns titles, URLs, and snippets "
+                     "for the search results. Use this to find information, research topics, "
+                     "or locate relevant URLs."),
         args_schema=WebSearchInput,
     )

@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Base executor class for sandbox tools."""
 
 import logging
@@ -64,10 +63,8 @@ class SandboxToolExecutor:
                 files = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
                 return [f"/workspace/output/{f}" for f in files]
             # Log non-success results for debugging
-            logger.error(
-                f"Failed to list generated files: exit_code={result.exit_code}, "
-                f"stderr={result.stderr}"
-            )
+            logger.error(f"Failed to list generated files: exit_code={result.exit_code}, "
+                         f"stderr={result.stderr}")
             return []
         except Exception:
             logger.exception("Exception while listing generated files")

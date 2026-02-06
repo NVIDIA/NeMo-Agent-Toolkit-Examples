@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Sandbox Agent workflow registration for NAT framework."""
 
 import logging
@@ -45,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 # ============ Configuration Classes ============
 
+
 class SandboxAgentWorkflowConfig(FunctionBaseConfig, name="sandbox_agent"):
     """Configuration for the Sandbox Agent workflow.
 
@@ -76,8 +76,7 @@ class SandboxAgentWorkflowConfig(FunctionBaseConfig, name="sandbox_agent"):
             "image": "python:3.12-slim",
             "memory_limit": "1g",
             "cpu_limit": 2.0,
-            "network_enabled": True,
-        },
+            "network_enabled": True, },
         description="Sandbox configuration dictionary.",
     )
 
@@ -97,7 +96,9 @@ class SandboxAgentWorkflowConfig(FunctionBaseConfig, name="sandbox_agent"):
         description="Additional instructions to append to the system prompt.",
     )
 
+
 # ============ Agent State ============
+
 
 class AgentState(TypedDict):
     """State for the sandbox agent graph."""
@@ -106,7 +107,9 @@ class AgentState(TypedDict):
     iteration_count: int
     sandbox_id: str
 
+
 # ============ Workflow Registration ============
+
 
 @register_function(
     config_type=SandboxAgentWorkflowConfig,
@@ -171,7 +174,6 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
         )
 
         # ============ Define Agent Nodes ============
-
         async def agent_node(state: AgentState) -> dict:
             """Agent reasoning node - decides what action to take."""
             messages = state["messages"]
@@ -182,10 +184,8 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
                 logger.warning(f"Reached max iterations ({config.max_iterations})")
                 return {
                     "messages": [
-                        AIMessage(
-                            content="I've reached the maximum number of steps. "
-                            "Here's a summary of what was accomplished so far."
-                        )
+                        AIMessage(content="I've reached the maximum number of steps. "
+                                  "Here's a summary of what was accomplished so far.")
                     ],
                     "iteration_count": iteration,
                 }
@@ -229,7 +229,9 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
         graph.add_conditional_edges(
             "agent",
             should_continue,
-            {"tools": "tools", END: END},
+            {
+                "tools": "tools", END: END
+            },
         )
         graph.add_edge("tools", "agent")
 
@@ -244,7 +246,6 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
         logger.info("Agent graph compiled successfully")
 
         # ============ Response Function ============
-
         async def _response_fn(input_message: str) -> str:
             """Process user input and return agent response.
 
