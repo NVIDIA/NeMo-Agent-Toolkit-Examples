@@ -99,8 +99,6 @@ class TestDaytonaSandboxClient:
 
             mock_config.assert_called_once_with(
                 api_key="test-key",
-                server_url="https://api.daytona.io",
-                target="us",
             )
             assert sandbox._client is not None
 
@@ -150,11 +148,10 @@ class TestDaytonaSandboxCommands:
         mock_instance = MagicMock()
         mock_instance.id = "test-id"
 
-        # Mock process.exec
+        # Mock process.exec (new SDK: stdout is in result.result, not result.stdout)
         mock_result = MagicMock()
         mock_result.exit_code = 0
-        mock_result.stdout = "output"
-        mock_result.stderr = ""
+        mock_result.result = "output"
         mock_instance.process.exec.return_value = mock_result
 
         sandbox._sandbox = mock_instance

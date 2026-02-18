@@ -67,7 +67,9 @@ eval:
     max_concurrency: ${MAX_CONCURRENCY:-4}
     dataset:
       _type: parquet
-      file_path: hf://datasets/gaia-benchmark/GAIA/2023/validation/metadata.parquet
+      # Enriched GAIA dataset with attached file paths injected into questions.
+      # Generated from original metadata.parquet by scripts/enrich_gaia_dataset.py
+      file_path: data/gaia_validation_enriched.parquet
       id_key: task_id
       structure:
         question_key: Question

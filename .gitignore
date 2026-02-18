@@ -1,5 +1,11 @@
 ###### Place new entries directly below this line! ######
 
+# GAIA benchmark data
+examples/sandbox_agent/src/nat_sandbox_agent/data/*
+!examples/sandbox_agent/src/nat_sandbox_agent/data/attachments/
+examples/sandbox_agent/src/nat_sandbox_agent/data/attachments/*
+!examples/sandbox_agent/src/nat_sandbox_agent/data/attachments/.gitkeep
+
 # auto-generated chainlit stuff
 chainlit.md
 .chainlit

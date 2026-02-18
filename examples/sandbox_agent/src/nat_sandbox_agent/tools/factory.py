@@ -32,7 +32,7 @@ def create_all_tools(
 
     This function combines:
     - Sandbox tools: shell, python, file_read, file_write, web_browse
-    - Host tools: web_search, youtube_transcript
+    - Host tools: web_search, web_fetch
 
     Args:
         sandbox: Sandbox instance for sandbox tools.
@@ -50,7 +50,7 @@ def create_all_tools(
         max_output_chars=max_output_chars,
     )
 
-    # Host tools (web_search, youtube_transcript)
+    # Host tools (web_search, web_fetch)
     host_tools = create_host_tools(
         tavily_api_key=tavily_api_key,
         max_output_chars=max_output_chars,
@@ -79,7 +79,7 @@ def get_tool_descriptions() -> str:
         ("web_browse", "Browse webpages and extract content"),
         # Host tools
         ("web_search", "Search the web using Tavily"),
-        ("youtube_transcript", "Get transcript from YouTube videos"),
+        ("web_fetch", "Fetch a URL and convert HTML to Markdown"),
     ]
 
     lines = ["Available tools:"]

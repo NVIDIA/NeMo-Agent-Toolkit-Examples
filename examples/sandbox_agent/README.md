@@ -25,10 +25,9 @@ The Sandbox Agent executes tasks within secure, isolated Docker containers or Da
 
 **Key Capabilities:**
 - Execute shell commands and Python code in isolated containers
-- Browse websites and extract content
+- Browse websites and extract content (Playwright for JS, lightweight fetch for static pages)
 - Search the web using Tavily AI Search
 - Read and write files within the sandbox
-- Extract transcripts from YouTube videos
 
 ## Quick Start
 
@@ -81,9 +80,9 @@ nat run --config_file configs/config.yaml --input "Write a Python program to pri
 | `python` | Sandbox | Execute Python code (data analysis, calculations, API calls) |
 | `file_read` | Sandbox | Read file contents |
 | `file_write` | Sandbox | Write content to files |
-| `web_browse` | Sandbox | Navigate URLs and extract page content |
+| `web_browse` | Sandbox | Navigate URLs and extract page content (Playwright, JS-rendered) |
+| `web_fetch` | Host | Fetch and convert web pages to markdown (lightweight, static pages) |
 | `web_search` | Host | Search the web via Tavily API |
-| `youtube_transcript` | Host | Extract transcripts from YouTube videos |
 
 **Sandbox tools** run inside the Docker container with access to `/workspace`.
 **Host tools** run on the host machine (API keys stay secure).
@@ -182,9 +181,13 @@ The sandbox provides an isolated workspace:
 ```
 
 **Pre-installed in nat-sandbox image:**
-- Data processing: pandas, NumPy, matplotlib, seaborn
+- Data processing: pandas, NumPy, matplotlib, seaborn, sympy
 - Web: requests, httpx, beautifulsoup4
 - Browser: playwright (Chromium)
+- PDF: pdfplumber, pypdf, pdf2image, poppler-utils
+- OCR: pytesseract, tesseract-ocr
+- Computer vision: opencv-python-headless
+- Audio: faster-whisper (with pre-downloaded tiny model), ffmpeg
 - Documents: python-pptx, python-docx, reportlab
 - Utilities: pillow, pyyaml, openpyxl
 
@@ -203,7 +206,12 @@ The Sandbox Agent is configured for [GAIA benchmark](https://huggingface.co/data
      mv /tmp/gaia/2023/validation/* data/attachments/
    ```
 
-3. **Run evaluation:**
+3. **Generate enriched dataset** (prepends attachment file paths to questions so the agent can find them):
+   ```bash
+   python scripts/enrich_gaia_dataset.py
+   ```
+
+4. **Run evaluation:**
    ```bash
    # Level 2 (default)
    GAIA_ATTACHMENTS_DIR=$(pwd)/data/attachments nat eval --config_file configs/config_gaia.yaml
@@ -252,6 +260,9 @@ sandbox_agent/
 ├── configs -> src/.../configs   # Symlink to configs
 ├── data -> src/.../data         # Symlink to data
 │
+├── scripts/
+│   └── enrich_gaia_dataset.py   # Generate enriched GAIA parquet
+│
 ├── src/nat_sandbox_agent/
 │   ├── register.py              # Workflow registration
 │   │
@@ -270,7 +281,7 @@ sandbox_agent/
 │   │   │   └── browser.py       # web_browse
 │   │   └── host/                # Host-side tools
 │   │       ├── web_search.py    # web_search
-│   │       └── youtube.py       # youtube_transcript
+│   │       └── web_fetch.py     # web_fetch
 │   │
 │   ├── prompts/                 # System prompts
 │   │   └── system_prompt.py
@@ -285,7 +296,8 @@ sandbox_agent/
 │   │   └── answer_cleaning.py   # Answer post-processing
 │   │
 │   └── data/
-│       └── attachments/         # GAIA attachments (not in repo)
+│       ├── attachments/         # GAIA attachments (not in repo)
+│       └── gaia_validation_enriched.parquet  # Enriched GAIA dataset
 │
 └── tests/                       # Unit tests
 ```

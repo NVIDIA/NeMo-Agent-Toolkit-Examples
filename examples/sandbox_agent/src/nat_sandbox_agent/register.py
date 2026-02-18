@@ -38,7 +38,7 @@ from nat.data_models.function import FunctionBaseConfig
 from nat_sandbox_agent.prompts import get_system_prompt
 from nat_sandbox_agent.sandbox.factory import create_sandbox_from_dict
 from nat_sandbox_agent.tools.factory import create_all_tools
-from nat_sandbox_agent.utils.answer_cleaning import clean_answer
+from nat_sandbox_agent.utils.answer_cleaning import clean_answer_with_llm
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
 
         # Create tools bound to this sandbox
         # Uses both sandbox tools (shell, python, file_*, web_browse) and
-        # host tools (web_search, youtube_transcript)
+        # host tools (web_search, web_fetch)
         # Convert tokens to chars (approx 4 chars per token)
         max_output_chars = config.max_observation_tokens * 4
         tools = create_all_tools(
@@ -278,7 +278,7 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
                     raw_response = str(final_message)
 
                 # Clean the answer for GAIA-style evaluation
-                cleaned_response = clean_answer(raw_response)
+                cleaned_response = await clean_answer_with_llm(llm, input_message, raw_response)
                 logger.debug(f"Raw response: {raw_response[:100]}...")
                 logger.debug(f"Cleaned response: {cleaned_response}")
 

@@ -35,6 +35,55 @@ class TestSystemPromptV1:
         assert "file" in prompt.lower()
         assert "web" in prompt.lower()
 
+    def test_prompt_contains_print_guidance(self):
+        """Test that prompt includes critical Python print() guidance."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "print()" in prompt
+        assert "ALWAYS use print()" in prompt or "ALWAYS use `print()`" in prompt
+        assert "Variables do NOT persist" in prompt
+        assert "empty stdout" in prompt
+
+    def test_prompt_contains_file_extension_mapping(self):
+        """Test that prompt includes file extension to tool mapping."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert ".xlsx" in prompt
+        assert ".pdf" in prompt
+        assert "pdfplumber" in prompt
+        assert ".mp3" in prompt
+        assert "faster_whisper" in prompt
+        assert ".pptx" in prompt
+        assert "python-pptx" in prompt
+
+    def test_prompt_contains_format_verification(self):
+        """Test that prompt includes format verification checklist."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "Format Verification" in prompt
+        assert "Number Format" in prompt
+        assert "Unit Requirements" in prompt
+        assert "Multiple Answers" in prompt
+        assert "Case Sensitivity" in prompt
+        assert "Date/Time Formats" in prompt
+
+    def test_prompt_contains_package_install_guidance(self):
+        """Test that prompt includes package installation guidance with root privileges."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "pip install" in prompt
+        assert "apt-get install" in prompt
+        assert "root privileges" in prompt
+
+    def test_prompt_contains_calculation_verification(self):
+        """Test that prompt includes calculation and reasoning verification rules."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "Calculation and Reasoning Verification" in prompt
+        assert "show your work" in prompt.lower() or "step by step" in prompt.lower()
+
+    def test_prompt_contains_data_extraction_practices(self):
+        """Test that prompt includes data extraction best practices."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "Data Extraction Best Practices" in prompt
+        assert "column headers" in prompt.lower()
+        assert "row alignment" in prompt.lower()
+
     def test_get_prompt_with_additional_instructions(self):
         """Test getting prompt with additional instructions."""
         additional = "Always respond in JSON format."

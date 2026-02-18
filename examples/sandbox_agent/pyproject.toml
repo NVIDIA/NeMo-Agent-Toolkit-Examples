@@ -42,6 +42,10 @@ dependencies = [
     # Web search (Tavily API - runs on host, not in sandbox)
     "tavily-python>=0.5.0",
 
+    # Web fetch (HTTP + HTML-to-Markdown - runs on host)
+    "httpx>=0.24.0",
+    "markdownify>=0.13.0",
+
     # Document generation
     "python-pptx>=0.6.21",
     "python-docx>=1.1.0",

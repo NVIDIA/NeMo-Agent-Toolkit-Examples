@@ -16,7 +16,7 @@
 
 Tool Architecture:
 - Sandbox tools: Run inside Docker sandbox (shell, python, file_*, web_browse)
-- Host tools: Run directly on host (web_search, youtube_transcript)
+- Host tools: Run directly on host (web_search, web_fetch)
 """
 
 from nat_sandbox_agent.tools.common import DEFAULT_MAX_OUTPUT_CHARS

@@ -16,7 +16,7 @@
 
 These tools don't require sandbox isolation and run directly on the host:
 - web_search: Tavily API calls
-- youtube_transcript: YouTube transcript API calls
+- web_fetch: Lightweight HTTP fetch + HTML-to-Markdown conversion
 
 This provides better security (API keys not exposed to sandbox) and
 lower latency (no Docker exec overhead).
@@ -25,8 +25,8 @@ lower latency (no Docker exec overhead).
 from langchain_core.tools import StructuredTool
 
 from nat_sandbox_agent.tools.common import DEFAULT_MAX_OUTPUT_CHARS
+from nat_sandbox_agent.tools.host.web_fetch import create_web_fetch_tool
 from nat_sandbox_agent.tools.host.web_search import create_web_search_tool
-from nat_sandbox_agent.tools.host.youtube import create_youtube_tool
 
 
 def create_host_tools(
@@ -44,12 +44,12 @@ def create_host_tools(
     """
     return [
         create_web_search_tool(api_key=tavily_api_key),
-        create_youtube_tool(max_output_chars=max_output_chars),
+        create_web_fetch_tool(max_output_chars=max_output_chars),
     ]
 
 
 __all__ = [
     "create_host_tools",
+    "create_web_fetch_tool",
     "create_web_search_tool",
-    "create_youtube_tool",
 ]

@@ -15,5 +15,6 @@
 """Utility functions for sandbox agent."""
 
 from nat_sandbox_agent.utils.answer_cleaning import clean_answer
+from nat_sandbox_agent.utils.answer_cleaning import clean_answer_with_llm
 
-__all__ = ["clean_answer"]
+__all__ = ["clean_answer", "clean_answer_with_llm"]

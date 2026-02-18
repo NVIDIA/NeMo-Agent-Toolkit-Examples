@@ -41,7 +41,7 @@ class TestCreateAllTools:
             "file_write",
             "web_browse",
             "web_search",
-            "youtube_transcript",
+            "web_fetch",
         }
         assert tool_names == expected_tools
 
@@ -127,7 +127,7 @@ class TestCreateHostTools:
         tools = create_host_tools()
         tool_names = {t.name for t in tools}
 
-        expected = {"web_search", "youtube_transcript"}
+        expected = {"web_search", "web_fetch"}
         assert tool_names == expected
 
 
@@ -151,7 +151,7 @@ class TestGetToolDescriptions:
             "file_write",
             "web_browse",
             "web_search",
-            "youtube_transcript",
+            "web_fetch",
         ]
         for tool_name in expected_tools:
             assert tool_name in descriptions

@@ -51,7 +51,6 @@ workflow:
   #   - file_write         # Write file contents
   #   - web_browse         # Browse web pages
   #   - web_search         # Search the web (Tavily)
-  #   - youtube_transcript # Get YouTube transcripts
 
 # Server and UI configuration
 general:

@@ -12,18 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for host-side tools (web_search, youtube_transcript)."""
+"""Tests for host-side tools (web_search, web_fetch)."""
 
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
+import httpx
 import pytest
 
+from nat_sandbox_agent.tools.host.web_fetch import WebFetchInput
+from nat_sandbox_agent.tools.host.web_fetch import create_web_fetch_tool
+from nat_sandbox_agent.tools.host.web_fetch import web_fetch
 from nat_sandbox_agent.tools.host.web_search import HostWebSearchTool
 from nat_sandbox_agent.tools.host.web_search import create_web_search_tool
-from nat_sandbox_agent.tools.host.youtube import HostYouTubeTool
-from nat_sandbox_agent.tools.host.youtube import create_youtube_tool
 
 
 class TestHostWebSearchTool:
@@ -136,171 +138,232 @@ class TestCreateWebSearchTool:
         assert "num_results" in schema["properties"]
 
 
-class TestHostYouTubeTool:
-    """Tests for HostYouTubeTool."""
+# ============ Web Fetch Tests ============
 
-    def test_init_with_custom_max_chars(self):
-        """Test initialization with custom max output chars."""
-        tool = HostYouTubeTool(max_output_chars=5000)
 
-        assert tool._max_output_chars == 5000
+def _mock_response(text, content_type="text/html", status_code=200, url="https://example.com"):
+    """Helper to create a mock httpx.Response."""
+    resp = MagicMock(spec=httpx.Response)
+    resp.text = text
+    resp.status_code = status_code
+    resp.url = url
+    resp.headers = {"content-type": content_type}
+    resp.raise_for_status = MagicMock()
+    return resp
 
-    @pytest.mark.parametrize(
-        "url,expected_id",
-        [
-            # Standard watch URLs
-            ("https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            ("https://youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            ("http://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            # With additional parameters
-            ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=120", "dQw4w9WgXcQ"),
-            ("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLtest", "dQw4w9WgXcQ"),
-            # Short URLs
-            ("https://youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            ("http://youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            ("youtu.be/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            # Embed URLs
-            ("https://www.youtube.com/embed/dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-            # Direct video ID
-            ("dQw4w9WgXcQ", "dQw4w9WgXcQ"),
-        ],
-    )
-    def test_extract_video_id_various_formats(self, url, expected_id):
-        """Test video ID extraction from various URL formats."""
-        tool = HostYouTubeTool()
 
-        video_id = tool._extract_video_id(url)
+class TestWebFetchInput:
+    """Tests for WebFetchInput schema validation."""
 
-        assert video_id == expected_id
+    def test_defaults(self):
+        """Test default values."""
+        inp = WebFetchInput(url="https://example.com")
+        assert inp.url == "https://example.com"
+        assert inp.max_length == 5000
+        assert inp.start_index == 0
+        assert inp.raw is False
 
-    def test_extract_video_id_invalid_url(self):
-        """Test that invalid URL returns None."""
-        tool = HostYouTubeTool()
+    def test_max_length_bounds(self):
+        """Test that max_length enforces bounds."""
+        with pytest.raises(Exception):
+            WebFetchInput(url="https://example.com", max_length=0)
+        with pytest.raises(Exception):
+            WebFetchInput(url="https://example.com", max_length=200000)
 
-        video_id = tool._extract_video_id("https://example.com/not-youtube")
+    def test_start_index_non_negative(self):
+        """Test that start_index must be non-negative."""
+        with pytest.raises(Exception):
+            WebFetchInput(url="https://example.com", start_index=-1)
 
-        assert video_id is None
+
+class TestWebFetch:
+    """Tests for the web_fetch async function."""
 
     @pytest.mark.asyncio
-    async def test_get_transcript_invalid_url(self):
-        """Test error handling for invalid video URL."""
-        # Mock the import to ensure consistent behavior
-        mock_api = MagicMock()
-        mock_errors = MagicMock()
-        mock_errors.NoTranscriptFound = Exception
-        mock_errors.TranscriptsDisabled = Exception
+    async def test_html_to_markdown(self):
+        """Test that HTML content is converted to Markdown."""
+        html = "<html><body><h1>Title</h1><p>Hello world</p></body></html>"
+        mock_resp = _mock_response(html, "text/html")
 
-        with patch.dict(
-                "sys.modules",
-            {
-                "youtube_transcript_api": mock_api,
-                "youtube_transcript_api._errors": mock_errors,
-            },
-        ):
-            tool = HostYouTubeTool()
-            result = await tool.get_transcript("not-a-valid-url-at-all")
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
 
-        assert result["status"] == "error"
-        assert "Could not extract video ID" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_get_transcript_success(self):
-        """Test successful transcript retrieval with mocked API."""
-        mock_transcript_data = [
-            {
-                "text": "Hello world", "start": 0.0, "duration": 2.0
-            },
-            {
-                "text": "This is a test", "start": 2.0, "duration": 3.0
-            },
-            {
-                "text": "Video transcript", "start": 5.0, "duration": 2.0
-            },
-        ]
-
-        mock_transcript = MagicMock()
-        mock_transcript.fetch.return_value = mock_transcript_data
-        mock_transcript.language = "en"
-
-        mock_transcript_list = MagicMock()
-        mock_transcript_list.find_transcript.return_value = mock_transcript
-
-        mock_api = MagicMock()
-        mock_api.YouTubeTranscriptApi.list_transcripts.return_value = mock_transcript_list
-
-        mock_errors = MagicMock()
-        mock_errors.NoTranscriptFound = type("NoTranscriptFound", (Exception, ), {})
-        mock_errors.TranscriptsDisabled = type("TranscriptsDisabled", (Exception, ), {})
-
-        with patch.dict(
-                "sys.modules",
-            {
-                "youtube_transcript_api": mock_api,
-                "youtube_transcript_api._errors": mock_errors,
-            },
-        ):
-            tool = HostYouTubeTool(max_output_chars=1000)
-            result = await tool.get_transcript("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+            result = await web_fetch("https://example.com")
 
         assert result["status"] == "success"
-        assert result["video_id"] == "dQw4w9WgXcQ"
-        assert result["language"] == "en"
-        assert "Hello world" in result["transcript"]
-        assert "This is a test" in result["transcript"]
-        assert result["duration_seconds"] == 7
+        assert "Title" in result["content"]
+        assert "Hello world" in result["content"]
+        assert result["total_length"] > 0
 
     @pytest.mark.asyncio
-    async def test_get_transcript_disabled(self):
-        """Test handling when transcripts are disabled."""
+    async def test_plain_text_passthrough(self):
+        """Test that plain text is returned without conversion."""
+        text = "Just plain text content"
+        mock_resp = _mock_response(text, "text/plain")
 
-        # Create a proper exception class
-        class TranscriptsDisabled(Exception):
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            def __init__(self, video_id):
-                self.video_id = video_id
-                super().__init__(f"Transcripts disabled for {video_id}")
+            result = await web_fetch("https://example.com/file.txt")
 
-        mock_api = MagicMock()
-        mock_api.YouTubeTranscriptApi.list_transcripts.side_effect = TranscriptsDisabled("test-video-id")
+        assert result["status"] == "success"
+        assert result["content"] == text
 
-        mock_errors = MagicMock()
-        mock_errors.NoTranscriptFound = type("NoTranscriptFound", (Exception, ), {})
-        mock_errors.TranscriptsDisabled = TranscriptsDisabled
+    @pytest.mark.asyncio
+    async def test_json_passthrough(self):
+        """Test that JSON is returned without conversion."""
+        json_text = '{"key": "value"}'
+        mock_resp = _mock_response(json_text, "application/json")
 
-        with patch.dict(
-                "sys.modules",
-            {
-                "youtube_transcript_api": mock_api,
-                "youtube_transcript_api._errors": mock_errors,
-            },
-        ):
-            tool = HostYouTubeTool()
-            result = await tool.get_transcript("dQw4w9WgXcQ")
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await web_fetch("https://api.example.com/data")
+
+        assert result["status"] == "success"
+        assert result["content"] == json_text
+
+    @pytest.mark.asyncio
+    async def test_raw_mode_skips_conversion(self):
+        """Test that raw=True returns content without HTML-to-Markdown."""
+        html = "<h1>Title</h1>"
+        mock_resp = _mock_response(html, "text/html")
+
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await web_fetch("https://example.com", raw=True)
+
+        assert result["status"] == "success"
+        assert "<h1>" in result["content"]
+
+    @pytest.mark.asyncio
+    async def test_pagination(self):
+        """Test start_index and max_length pagination."""
+        # Content = "AAAA...BBBB..." (20 A's + 20 B's = 40 chars)
+        text = "A" * 20 + "B" * 20
+        mock_resp = _mock_response(text, "text/plain")
+
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            # First page
+            result = await web_fetch("https://example.com", max_length=20, start_index=0)
+
+        assert result["content"] == "A" * 20
+        assert result["total_length"] == 40
+        assert result["has_more"] is True
+        assert result["next_start_index"] == 20
+
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            # Second page
+            result2 = await web_fetch("https://example.com", max_length=20, start_index=20)
+
+        assert result2["content"] == "B" * 20
+        assert "has_more" not in result2
+
+    @pytest.mark.asyncio
+    async def test_http_error(self):
+        """Test handling of HTTP errors."""
+        mock_resp = MagicMock(spec=httpx.Response)
+        mock_resp.status_code = 404
+        mock_resp.reason_phrase = "Not Found"
+        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Not Found", request=MagicMock(), response=mock_resp
+        )
+
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await web_fetch("https://example.com/missing")
 
         assert result["status"] == "error"
-        assert "disabled" in result["error"].lower()
+        assert "404" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_timeout_error(self):
+        """Test handling of timeout."""
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.side_effect = httpx.TimeoutException("timed out")
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await web_fetch("https://slow.example.com")
+
+        assert result["status"] == "error"
+        assert "timed out" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_converts_html_headings_to_markdown(self):
+        """Test that HTML headings are converted to ATX-style Markdown."""
+        html = "<html><body><h1>Title</h1><h2>Subtitle</h2><p>Body text</p></body></html>"
+        mock_resp = _mock_response(html, "text/html")
+
+        with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
+            mock_ctx = AsyncMock()
+            mock_ctx.get.return_value = mock_resp
+            MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_ctx)
+            MockClient.return_value.__aexit__ = AsyncMock(return_value=False)
+
+            result = await web_fetch("https://example.com")
+
+        content = result["content"]
+        # ATX headings: # Title, ## Subtitle
+        assert "# Title" in content
+        assert "## Subtitle" in content
+        assert "Body text" in content
+        # HTML tags should not appear in output
+        assert "<h1>" not in content
+        assert "<p>" not in content
 
 
-class TestCreateYouTubeTool:
-    """Tests for create_youtube_tool function."""
+class TestCreateWebFetchTool:
+    """Tests for create_web_fetch_tool function."""
 
     def test_creates_structured_tool(self):
         """Test that function creates a StructuredTool."""
-        tool = create_youtube_tool()
+        tool = create_web_fetch_tool()
 
-        assert tool.name == "youtube_transcript"
-        assert "transcript" in tool.description.lower()
+        assert tool.name == "web_fetch"
+        assert "Markdown" in tool.description
 
     def test_tool_has_correct_schema(self):
         """Test that tool has correct input schema."""
-        tool = create_youtube_tool()
+        tool = create_web_fetch_tool()
 
-        schema = tool.args_schema.schema()
+        schema = tool.args_schema.model_json_schema()
         assert "url" in schema["properties"]
-        assert "language" in schema["properties"]
+        assert "max_length" in schema["properties"]
+        assert "start_index" in schema["properties"]
+        assert "raw" in schema["properties"]
 
-    def test_accepts_custom_max_chars(self):
+    def test_accepts_custom_max_output_chars(self):
         """Test that max_output_chars parameter is accepted."""
-        # Should not raise
-        tool = create_youtube_tool(max_output_chars=5000)
+        tool = create_web_fetch_tool(max_output_chars=5000)
         assert tool is not None
+
+

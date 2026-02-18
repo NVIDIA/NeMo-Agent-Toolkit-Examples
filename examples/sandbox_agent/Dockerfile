@@ -61,6 +61,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto \
     fonts-noto-cjk \
     fonts-dejavu-core \
+    # Audio/video processing
+    ffmpeg \
+    # PDF processing
+    poppler-utils \
+    # OCR
+    tesseract-ocr \
+    tesseract-ocr-eng \
     # Document generation dependencies
     pandoc \
     # Clean up
@@ -84,8 +91,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
     playwright>=1.40.0 \
     # Web search
     tavily-python>=0.5.0 \
-    # YouTube transcript
-    youtube-transcript-api>=0.6.0 \
     # Document generation
     python-pptx>=0.6.21 \
     python-docx>=1.1.0 \
@@ -98,6 +103,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pyyaml>=6.0.0 \
     # Image processing
     pillow>=10.0.0 \
+    # PDF processing
+    pdfplumber>=0.10.0 \
+    pypdf>=3.0.0 \
+    pdf2image>=1.16.0 \
+    # OCR
+    pytesseract>=0.3.10 \
+    # Mathematical computation
+    sympy>=1.12 \
+    # Computer vision
+    opencv-python-headless>=4.8.0 \
+    # Speech recognition
+    faster-whisper>=1.0.0 \
     # Utilities
     aiofiles>=23.0.0 \
     python-dateutil>=2.8.0
@@ -109,11 +126,8 @@ RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH} && chmod 755 ${PLAYWRIGHT_BROWSERS_PATH
 # Install Playwright browser (Chromium only to reduce size)
 RUN playwright install chromium --with-deps
 
-# Create non-root user for security (created early so we can chown)
-RUN useradd -m -s /bin/bash sandbox
-
-# Change ownership of Playwright browsers to sandbox user
-RUN chown -R sandbox:sandbox ${PLAYWRIGHT_BROWSERS_PATH}
+# Pre-download faster-whisper model so it's available offline
+RUN python -c "from faster_whisper import WhisperModel; WhisperModel('tiny')"
 
 # Create workspace directories
 RUN mkdir -p /workspace/input \
@@ -123,12 +137,6 @@ RUN mkdir -p /workspace/input \
 
 # Set working directory
 WORKDIR /workspace
-
-# Set workspace ownership to sandbox user
-RUN chown -R sandbox:sandbox /workspace
-
-# Switch to non-root user
-USER sandbox
 
 # Default command - keep container running
 CMD ["/bin/bash"]
