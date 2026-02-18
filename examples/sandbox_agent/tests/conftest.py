@@ -48,6 +48,7 @@ def mock_sandbox() -> MagicMock:
 
     # Mock file operations
     sandbox.read_file = AsyncMock(return_value="file content")
+    sandbox.read_file_bytes = AsyncMock(return_value=b"file content")
     sandbox.write_file = AsyncMock(return_value=None)
 
     # Mock lifecycle

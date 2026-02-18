@@ -25,6 +25,7 @@ lower latency (no Docker exec overhead).
 from langchain_core.tools import StructuredTool
 
 from nat_sandbox_agent.tools.common import DEFAULT_MAX_OUTPUT_CHARS
+from nat_sandbox_agent.tools.host.image_describe import create_image_describe_tool
 from nat_sandbox_agent.tools.host.web_fetch import create_web_fetch_tool
 from nat_sandbox_agent.tools.host.web_search import create_web_search_tool
 
@@ -50,6 +51,7 @@ def create_host_tools(
 
 __all__ = [
     "create_host_tools",
+    "create_image_describe_tool",
     "create_web_fetch_tool",
     "create_web_search_tool",
 ]

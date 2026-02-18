@@ -262,6 +262,36 @@ class DockerSandbox(BaseSandbox):
             logger.error(f"Failed to read file {path}: {e}")
             raise
 
+    async def read_file_bytes(self, path: str) -> bytes:
+        """Read file content as bytes from the container."""
+        if not self._container:
+            raise RuntimeError("Sandbox not started")
+
+        def _extract_bytes_from_archive():
+            """Synchronous helper to fetch and extract raw bytes from container."""
+            bits, _ = self._container.get_archive(path)
+
+            tar_stream = io.BytesIO()
+            for chunk in bits:
+                tar_stream.write(chunk)
+            tar_stream.seek(0)
+
+            with tarfile.open(fileobj=tar_stream, mode="r") as tar:
+                member = tar.getmembers()[0]
+                file_obj = tar.extractfile(member)
+                if file_obj:
+                    return file_obj.read()
+                raise FileNotFoundError(f"File not found: {path}")
+
+        try:
+            return await asyncio.get_running_loop().run_in_executor(None, _extract_bytes_from_archive)
+
+        except NotFound:
+            raise FileNotFoundError(f"File not found: {path}") from None
+        except Exception as e:
+            logger.error(f"Failed to read file bytes {path}: {e}")
+            raise
+
     async def write_file(self, path: str, content: str) -> None:
         """Write content to a file in the container."""
         if not self._container:

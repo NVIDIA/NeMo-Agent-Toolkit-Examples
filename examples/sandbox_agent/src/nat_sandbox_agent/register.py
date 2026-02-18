@@ -58,6 +58,10 @@ class SandboxAgentWorkflowConfig(FunctionBaseConfig, name="sandbox_agent"):
         ...,
         description="Reference to the LLM to use for the agent.",
     )
+    vision_llm_name: LLMRef | None = Field(
+        default=None,
+        description="Reference to a vision-capable LLM for image analysis. If None, image_describe tool is disabled.",
+    )
 
     # Agent behavior
     max_iterations: int = Field(
@@ -146,23 +150,33 @@ async def sandbox_agent_workflow(config: SandboxAgentWorkflowConfig, builder: Bu
         await sandbox.start()
         logger.info(f"Sandbox started: {session_id}")
 
+        # Get LLM from builder
+        llm = await builder.get_llm(
+            config.llm_name,
+            wrapper_type=LLMFrameworkEnum.LANGCHAIN,
+        )
+
+        # Optional: create vision LLM for image_describe tool
+        vision_llm = None
+        if config.vision_llm_name:
+            vision_llm = await builder.get_llm(
+                config.vision_llm_name,
+                wrapper_type=LLMFrameworkEnum.LANGCHAIN,
+            )
+            logger.info(f"Vision LLM created: {config.vision_llm_name}")
+
         # Create tools bound to this sandbox
         # Uses both sandbox tools (shell, python, file_*, web_browse) and
-        # host tools (web_search, web_fetch)
+        # host tools (web_search, web_fetch, optionally image_describe)
         # Convert tokens to chars (approx 4 chars per token)
         max_output_chars = config.max_observation_tokens * 4
         tools = create_all_tools(
             sandbox=sandbox,
             include_tools=config.enabled_tools,
             max_output_chars=max_output_chars,
+            vision_llm=vision_llm,
         )
         logger.info(f"Created {len(tools)} tools for sandbox")
-
-        # Get LLM from builder
-        llm = await builder.get_llm(
-            config.llm_name,
-            wrapper_type=LLMFrameworkEnum.LANGCHAIN,
-        )
 
         # Bind tools to LLM
         llm_with_tools = llm.bind_tools(tools)

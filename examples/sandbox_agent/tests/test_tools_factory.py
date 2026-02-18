@@ -14,6 +14,9 @@
 # limitations under the License.
 """Tests for tool factory functions."""
 
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+
 from nat_sandbox_agent.tools import create_all_tools
 from nat_sandbox_agent.tools import create_host_tools
 from nat_sandbox_agent.tools import create_sandbox_tools
@@ -84,6 +87,41 @@ class TestCreateAllTools:
         )
         assert len(tools) == 7
 
+    def test_with_vision_llm_adds_image_describe(self, mock_sandbox):
+        """Test that providing vision_llm adds image_describe tool."""
+        mock_vision_llm = MagicMock()
+        mock_vision_llm.ainvoke = AsyncMock()
+
+        tools = create_all_tools(
+            sandbox=mock_sandbox,
+            vision_llm=mock_vision_llm,
+        )
+
+        assert len(tools) == 8
+        tool_names = {t.name for t in tools}
+        assert "image_describe" in tool_names
+
+    def test_without_vision_llm_no_image_describe(self, mock_sandbox):
+        """Test that without vision_llm, image_describe is not included."""
+        tools = create_all_tools(sandbox=mock_sandbox)
+
+        tool_names = {t.name for t in tools}
+        assert "image_describe" not in tool_names
+
+    def test_include_tools_can_select_image_describe(self, mock_sandbox):
+        """Test that include_tools can select image_describe when vision_llm is provided."""
+        mock_vision_llm = MagicMock()
+        mock_vision_llm.ainvoke = AsyncMock()
+
+        tools = create_all_tools(
+            sandbox=mock_sandbox,
+            vision_llm=mock_vision_llm,
+            include_tools=["shell", "image_describe"],
+        )
+
+        tool_names = {t.name for t in tools}
+        assert tool_names == {"shell", "image_describe"}
+
 
 class TestCreateSandboxTools:
     """Tests for create_sandbox_tools function."""
@@ -152,6 +190,7 @@ class TestGetToolDescriptions:
             "web_browse",
             "web_search",
             "web_fetch",
+            "image_describe",
         ]
         for tool_name in expected_tools:
             assert tool_name in descriptions

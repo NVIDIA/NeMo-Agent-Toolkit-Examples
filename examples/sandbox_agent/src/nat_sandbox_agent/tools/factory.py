@@ -14,11 +14,14 @@
 # limitations under the License.
 """Factory for creating all agent tools (sandbox + host)."""
 
+from typing import Any
+
 from langchain_core.tools import StructuredTool
 
 from nat_sandbox_agent.sandbox.base import BaseSandbox
 from nat_sandbox_agent.tools.common import DEFAULT_MAX_OUTPUT_CHARS
 from nat_sandbox_agent.tools.host import create_host_tools
+from nat_sandbox_agent.tools.host import create_image_describe_tool
 from nat_sandbox_agent.tools.sandbox import create_sandbox_tools
 
 
@@ -27,12 +30,14 @@ def create_all_tools(
     tavily_api_key: str | None = None,
     max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS,
     include_tools: list[str] | None = None,
+    vision_llm: Any | None = None,
 ) -> list[StructuredTool]:
     """Create all tools (sandbox + host).
 
     This function combines:
     - Sandbox tools: shell, python, file_read, file_write, web_browse
     - Host tools: web_search, web_fetch
+    - Optional: image_describe (requires vision_llm)
 
     Args:
         sandbox: Sandbox instance for sandbox tools.
@@ -40,6 +45,7 @@ def create_all_tools(
         max_output_chars: Maximum characters for tool output truncation.
         include_tools: Optional list of tool names to include.
             If None, all tools are included.
+        vision_llm: Optional vision-capable LLM for image_describe tool.
 
     Returns:
         Combined list of all tools.
@@ -57,6 +63,11 @@ def create_all_tools(
     )
 
     all_tools = {t.name: t for t in sandbox_tools + host_tools}
+
+    # Optional: image_describe tool (requires vision LLM)
+    if vision_llm is not None:
+        image_tool = create_image_describe_tool(sandbox=sandbox, vision_llm=vision_llm)
+        all_tools[image_tool.name] = image_tool
 
     if include_tools:
         return [all_tools[name] for name in include_tools if name in all_tools]
@@ -80,6 +91,7 @@ def get_tool_descriptions() -> str:
         # Host tools
         ("web_search", "Search the web using Tavily"),
         ("web_fetch", "Fetch a URL and convert HTML to Markdown"),
+        ("image_describe", "Analyze an image using a vision model"),
     ]
 
     lines = ["Available tools:"]

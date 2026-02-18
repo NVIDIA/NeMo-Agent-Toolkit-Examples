@@ -43,10 +43,18 @@ llms:
     model_name: meta/llama-3.3-70b-instruct
     temperature: 0.0
 
+  # Vision LLM for image analysis (image_describe tool)
+  vision_llm:
+    _type: ${VISION_LLM_TYPE:-nim}
+    model_name: ${VISION_LLM_MODEL:-nvidia/llama-4-maverick-17b-128e-instruct}
+    temperature: 0.0
+    max_tokens: 2048
+
 # Workflow Configuration
 workflow:
   _type: sandbox_agent
   llm_name: agent_llm
+  vision_llm_name: vision_llm
   max_iterations: ${MAX_ITERATIONS:-50}
   max_observation_tokens: 20000
 

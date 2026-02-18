@@ -197,6 +197,20 @@ class DaytonaSandbox(BaseSandbox):
             logger.error(f"Failed to read file {path}: {e}")
             raise
 
+    async def read_file_bytes(self, path: str) -> bytes:
+        """Read file content as bytes from the Daytona sandbox."""
+        if not self._sandbox:
+            raise RuntimeError("Sandbox not started")
+
+        try:
+            data = await asyncio.get_running_loop().run_in_executor(None, lambda: self._sandbox.fs.download_file(path))
+            return data
+        except Exception as e:
+            if "not found" in str(e).lower():
+                raise FileNotFoundError(f"File not found: {path}") from None
+            logger.error(f"Failed to read file bytes {path}: {e}")
+            raise
+
     async def write_file(self, path: str, content: str) -> None:
         """Write content to a file in the Daytona sandbox."""
         if not self._sandbox:

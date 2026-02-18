@@ -54,6 +54,12 @@ class TestSystemPromptV1:
         assert ".pptx" in prompt
         assert "python-pptx" in prompt
 
+    def test_prompt_contains_image_describe_tool(self):
+        """Test that prompt includes image_describe tool description."""
+        prompt = SANDBOX_AGENT_SYSTEM_PROMPT
+        assert "image_describe" in prompt
+        assert "vision model" in prompt.lower() or "vision" in prompt.lower()
+
     def test_prompt_contains_format_verification(self):
         """Test that prompt includes format verification checklist."""
         prompt = SANDBOX_AGENT_SYSTEM_PROMPT
