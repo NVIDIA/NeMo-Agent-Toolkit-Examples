@@ -30,7 +30,7 @@ dynamic = ["version"]
 requires-python = ">=3.11,<3.14"
 description = "NeMo Agent Toolkit Profiler Agent"
 dependencies = [
-    "nvidia-nat[langchain,profiling,opentelemetry,phoenix,ragaai,weave,test]>=1.4.0,<1.6.0",
+    "nvidia-nat[langchain,profiling,opentelemetry,phoenix,ragaai,weave,test]==1.5.0rc1",
     "arize-phoenix-client~=1.21",
 ]
 keywords = ["ai", "rag", "agents"]

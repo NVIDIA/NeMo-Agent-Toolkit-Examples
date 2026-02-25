@@ -92,9 +92,6 @@ export NVIDIA_API_KEY=<YOUR_API_KEY>
    Show me the token usage of last run
    ```
 
-   ![Sample Response](https://raw.githubusercontent.com/NVIDIA/NeMo-Agent-Toolkit/main/docs/source/_static/profiler-agent.png "Sample Response UI Image")
-
-   More examples:
    ```
    Show me flowchart of last 3 runs
    ```
