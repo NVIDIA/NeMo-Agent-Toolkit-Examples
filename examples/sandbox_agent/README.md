@@ -27,6 +27,7 @@ The Sandbox Agent executes tasks within secure, isolated Docker containers or Da
 - Execute shell commands and Python code in isolated containers
 - Browse websites and extract content (Playwright for JS, lightweight fetch for static pages)
 - Search the web using Tavily AI Search
+- Analyze images using a configurable vision LLM
 - Read and write files within the sandbox
 
 ## Quick Start
@@ -81,8 +82,9 @@ nat run --config_file configs/config.yaml --input "Write a Python program to pri
 | `file_read` | Sandbox | Read file contents |
 | `file_write` | Sandbox | Write content to files |
 | `web_browse` | Sandbox | Navigate URLs and extract page content (Playwright, JS-rendered) |
-| `web_fetch` | Host | Fetch and convert web pages to markdown (lightweight, static pages) |
 | `web_search` | Host | Search the web via Tavily API |
+| `web_fetch` | Host | Fetch and convert web pages to markdown (lightweight, static pages) |
+| `image_describe` | Host | Analyze images using a vision LLM (optional, requires `vision_llm`) |
 
 **Sandbox tools** run inside the Docker container with access to `/workspace`.
 **Host tools** run on the host machine (API keys stay secure).
@@ -99,9 +101,17 @@ llms:
     model_name: meta/llama-3.3-70b-instruct
     temperature: 0.0
 
+  # Optional: Vision LLM for image analysis (enables image_describe tool)
+  # vision_llm:
+  #   _type: nim
+  #   model_name: nvidia/llama-4-maverick-17b-128e-instruct
+  #   temperature: 0.0
+  #   max_tokens: 2048
+
 workflow:
   _type: sandbox_agent
   llm_name: agent_llm
+  # vision_llm_name: vision_llm  # Uncomment to enable image_describe tool
   max_iterations: 20
   sandbox_config:
     type: docker
@@ -117,6 +127,7 @@ workflow:
 |--------|---------|-------------|
 | `max_iterations` | 20 | Maximum agent reasoning steps |
 | `max_observation_tokens` | 10000 | Token limit for tool outputs |
+| `vision_llm_name` | null | Vision LLM for `image_describe` tool (optional) |
 | `sandbox_config.type` | docker | Sandbox type: `docker` or `daytona` |
 | `sandbox_config.image` | python:3.12-slim | Docker image to use |
 | `sandbox_config.memory_limit` | 512m | Container memory limit |
@@ -181,13 +192,13 @@ The sandbox provides an isolated workspace:
 ```
 
 **Pre-installed in nat-sandbox image:**
-- Data processing: pandas, NumPy, matplotlib, seaborn, sympy
+- Data processing: pandas, NumPy, matplotlib, seaborn, SymPy
 - Web: requests, httpx, beautifulsoup4
 - Browser: playwright (Chromium)
 - PDF: pdfplumber, pypdf, pdf2image, poppler-utils
 - OCR: pytesseract, tesseract-ocr
 - Computer vision: opencv-python-headless
-- Audio: faster-whisper (with pre-downloaded tiny model), ffmpeg
+- Audio: faster-whisper (with pre-downloaded tiny model), FFmpeg
 - Documents: python-pptx, python-docx, reportlab
 - Utilities: pillow, pyyaml, openpyxl
 
@@ -206,7 +217,7 @@ The Sandbox Agent is configured for [GAIA benchmark](https://huggingface.co/data
      mv /tmp/gaia/2023/validation/* data/attachments/
    ```
 
-3. **Generate enriched dataset** (prepends attachment file paths to questions so the agent can find them):
+3. **Generate enriched dataset** (add attachment file paths to questions so the agent can find them):
    ```bash
    python scripts/enrich_gaia_dataset.py
    ```
@@ -230,23 +241,23 @@ The Sandbox Agent is configured for [GAIA benchmark](https://huggingface.co/data
 - **LLM Latency**: Average LLM response time
 - **LLM Calls**: Average number of LLM calls per task
 
-### Results (January 2026)
+### Results (February 2026)
 
-**GPT-5.2:**
-
-| Level | Tasks | Accuracy | Description |
-|-------|-------|----------|-------------|
-| Level 1 | 53 | **55.66%** | Basic tasks |
-| Level 2 | 86 | **51.16%** | Intermediate tasks |
-| Level 3 | 26 | **36.54%** | Complex tasks |
-
-**NIM LLaMA-3.3-70B**:
+**GPT-5.2 (agent + vision):**
 
 | Level | Tasks | Accuracy | Description |
 |-------|-------|----------|-------------|
-| Level 1 | 53 | **33.49%** | Basic tasks |
-| Level 2 | 86 | **18.02%** | Intermediate tasks |
-| Level 3 | 26 | **11.54%** | Complex tasks |
+| Level 1 | 53 | **69.8%** | Basic tasks |
+| Level 2 | 86 | **60.5%** | Intermediate tasks |
+| Level 3 | 26 | **38.5%** | Complex tasks |
+
+**NIM LLaMA-3.3-70B:**
+
+| Level | Tasks | Accuracy | Description |
+|-------|-------|----------|-------------|
+| Level 1 | 53 | **33.5%** | Basic tasks |
+| Level 2 | 86 | **18.0%** | Intermediate tasks |
+| Level 3 | 26 | **11.5%** | Complex tasks |
 
 *Results depend on model capabilities, sandbox resources, and task types.*
 
@@ -281,7 +292,8 @@ sandbox_agent/
 │   │   │   └── browser.py       # web_browse
 │   │   └── host/                # Host-side tools
 │   │       ├── web_search.py    # web_search
-│   │       └── web_fetch.py     # web_fetch
+│   │       ├── web_fetch.py     # web_fetch
+│   │       └── image_describe.py # image_describe (vision LLM)
 │   │
 │   ├── prompts/                 # System prompts
 │   │   └── system_prompt.py
