@@ -63,12 +63,12 @@ export NVIDIA_API_KEY=<YOUR_API_KEY>
 
 ## Use Case Description
 
-Kubernetes clusters generate a constant stream of operational signals — node conditions, pod status changes, events, and resource metrics. Triaging these signals manually is time-consuming, especially in clusters running dozens of workloads across multiple namespaces.
+Kubernetes clusters generate a constant stream of operational signals — node conditions, pod status changes, events, and resource metrics. Investigating these signals manually is time-consuming, especially in clusters running dozens of workloads across multiple namespaces.
 
 This example provides an agentic system that:
 
-1. **Gathers node diagnostics**: Checks node readiness, conditions (MemoryPressure, DiskPressure, PIDPressure), and resource utilization via `kubectl top`.
-2. **Scans pod health**: Identifies unhealthy pods (CrashLoopBackOff, OOMKilled, Pending, Evicted) and flags containers with high restart counts.
+1. **Gathers node diagnostics**: Checks node readiness, conditions (`MemoryPressure`, `DiskPressure`, `PIDPressure`), and resource utilization via `kubectl top`.
+2. **Scans pod health**: Identifies unhealthy pods (`CrashLoopBackOff`, `OOMKilled`, `Pending`, `Evicted`) and flags containers with high restart counts.
 3. **Collects cluster events**: Retrieves recent Warning events and correlates them with affected resources.
 4. **Analyzes resource pressure**: Detects nodes approaching CPU or memory thresholds and flags active pressure conditions.
 5. **Classifies severity**: Uses an LLM to classify the overall incident severity based on collected evidence.
@@ -79,7 +79,7 @@ This example provides an agentic system that:
 An agentic approach provides significant advantages over static dashboards or rule-based alerting:
 
 - **Contextual investigation**: The agent decides which tools to call based on the query, rather than running every check every time.
-- **Cross-signal correlation**: Unlike siloed monitoring tools, the agent correlates data from nodes, pods, events, and resources to identify root causes (e.g., OOMKilled pods + MemoryPressure condition = memory exhaustion on a specific node).
+- **Cross-signal correlation**: Unlike isolated monitoring tools, the agent correlates data from nodes, pods, events, and resources to identify root causes (e.g., `OOMKilled` pods + `MemoryPressure` condition = memory exhaustion on a specific node).
 - **Natural language reports**: Produces human-readable incident summaries that can be directly shared with team members or fed into ticketing systems.
 
 ## How It Works
@@ -123,7 +123,7 @@ functions:
 
 - `offline_mode`: When `true`, tools return pre-defined responses from the offline scenario dataset.
 - `cpu_threshold_percent` / `memory_threshold_percent`: Configurable thresholds for resource pressure alerts.
-- `kubeconfig_path`: Optional path to a kubeconfig file for live mode. Defaults to the standard `kubectl` config.
+- `kubeconfig_path`: Optional path to a `kubeconfig` file for live mode. Defaults to the standard `kubectl` config.
 
 #### Workflow
 
@@ -152,7 +152,7 @@ Offline mode uses predefined scenarios to simulate cluster issues without requir
 
 Three scenarios are included:
 - **`node-not-ready`**: A worker node becomes unreachable, causing pod evictions.
-- **`memory-pressure`**: Multiple pods are OOMKilled due to memory exhaustion on a worker node.
+- **`memory-pressure`**: Multiple pods are `OOMKilled` due to memory exhaustion on a worker node.
 - **`healthy-cluster`**: Normal cluster operations with no issues.
 
 ```bash
@@ -196,4 +196,4 @@ nat run \
 You can customize the live mode configuration to:
 - Target specific namespaces with the `namespaces` list in `pod_health_check`.
 - Adjust resource thresholds with `cpu_threshold_percent` and `memory_threshold_percent`.
-- Point to a specific kubeconfig file with `kubeconfig_path`.
+- Point to a specific `kubeconfig` file with `kubeconfig_path`.
