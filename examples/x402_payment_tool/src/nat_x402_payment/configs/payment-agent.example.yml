@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# x402 Payment Tool — Agent Configuration
+# Copy to payment-agent.yml and customize for your deployment
+
+agent:
+  type: react
+  llm:
+    model: meta/llama-3.3-70b-instruct  # Or any NIM-compatible model
+    temperature: 0.1
+  tools:
+    - fetch_paid_api  # x402 payment-enabled fetch tool
+
+# Payment tool configuration (also settable via environment variables)
+payment_tool:
+  # Per-transaction limit in USDC
+  max_per_transaction: 0.10
+
+  # Daily spending cap in USDC
+  max_daily_spend: 5.00
+
+  # Allowlisted payment recipient addresses (empty = allow all)
+  allowed_recipients: []
+
+  # Require human confirmation before each payment
+  require_confirmation: false
+
+  # Wallet mode: "inline" (dev) or "remote" (production)
+  # Inline: set WALLET_PRIVATE_KEY env var
+  # Remote: set WALLET_SIGNER_URL env var
+  wallet_mode: inline

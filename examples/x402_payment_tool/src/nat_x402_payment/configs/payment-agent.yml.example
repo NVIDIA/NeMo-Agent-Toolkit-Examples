@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Example configuration for an agent with x402 payment capabilities.
+# Copy this file to payment-agent.yml and customize.
+
+agent:
+  name: payment-enabled-agent
+  description: An agent that can access paid APIs using x402 payments
+  
+  # LLM configuration — uses NVIDIA NIM
+  llm:
+    model: meta/llama-3.3-70b-instruct
+    api_base: https://integrate.api.nvidia.com/v1
+    # Set NVIDIA_API_KEY environment variable
+
+  tools:
+    - paid_api_request  # Registered via nat.components entry point
+
+# Payment configuration
+payment:
+  # Spending limits — enforced BEFORE any payment is signed
+  max_per_transaction_usd: 1.00
+  max_daily_usd: 10.00
+  
+  # Allowlisted recipient addresses (leave empty to allow all)
+  allowed_recipients: []
+  
+  # If true, agent asks user for confirmation before each payment
+  require_confirmation: false
+  
+  # Set to true for testing without real blockchain transactions
+  mock: true
+  
+  # Network: "base" for mainnet, "base-sepolia" for testnet
+  network: base-sepolia
