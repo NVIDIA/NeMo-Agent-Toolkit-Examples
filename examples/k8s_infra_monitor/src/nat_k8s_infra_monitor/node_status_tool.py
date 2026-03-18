@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tool for retrieving Kubernetes node status and resource utilization."""
 
 import json
@@ -32,10 +31,8 @@ class NodeStatusToolConfig(FunctionBaseConfig, name="node_status_check"):
     """Configuration for the Kubernetes node status check tool."""
 
     offline_mode: bool = Field(default=True, description="Whether to run in offline mode")
-    kubeconfig_path: str | None = Field(
-        default=None,
-        description="Path to kubeconfig file. If None, uses default kubectl config."
-    )
+    kubeconfig_path: str | None = Field(default=None,
+                                        description="Path to kubeconfig file. If None, uses default kubectl config.")
 
 
 @register_function(config_type=NodeStatusToolConfig)
@@ -88,13 +85,14 @@ def _run_live(kubeconfig_path: str | None) -> str:
     try:
         result = subprocess.run(
             [*cmd_base, "get", "nodes", "-o", "wide", "--no-headers"],
-            capture_output=True, text=True, timeout=30, check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl failed while fetching node status\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl failed while fetching node status\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         else:
             sections.append(f"## Node Status\n```\n{result.stdout.strip()}\n```")
     except subprocess.TimeoutExpired:
@@ -104,13 +102,14 @@ def _run_live(kubeconfig_path: str | None) -> str:
     try:
         result = subprocess.run(
             [*cmd_base, "top", "nodes", "--no-headers"],
-            capture_output=True, text=True, timeout=30, check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl top failed\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl top failed\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         else:
             sections.append(f"## Node Resource Usage\n```\n{result.stdout.strip()}\n```")
     except subprocess.TimeoutExpired:
@@ -121,12 +120,10 @@ def _run_live(kubeconfig_path: str | None) -> str:
 
 def _get_default_healthy_response() -> str:
     """Return a default healthy node status response for offline mode."""
-    return (
-        "## Node Status\n"
-        "All 3 nodes are in Ready state.\n"
-        "- control-plane-1: Ready, SchedulingDisabled (control-plane taint)\n"
-        "- worker-1: Ready, 6 vCPU, 30Gi RAM, 74% CPU, 62% memory\n"
-        "- worker-2: Ready, 6 vCPU, 20Gi RAM, 45% CPU, 51% memory\n\n"
-        "## Node Resource Usage\n"
-        "No resource pressure conditions detected on any node."
-    )
+    return ("## Node Status\n"
+            "All 3 nodes are in Ready state.\n"
+            "- control-plane-1: Ready, SchedulingDisabled (control-plane taint)\n"
+            "- worker-1: Ready, 6 vCPU, 30Gi RAM, 74% CPU, 62% memory\n"
+            "- worker-2: Ready, 6 vCPU, 20Gi RAM, 45% CPU, 51% memory\n\n"
+            "## Node Resource Usage\n"
+            "No resource pressure conditions detected on any node.")

@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tool for classifying the severity of Kubernetes infrastructure incidents."""
 
 import typing
@@ -52,7 +51,8 @@ async def severity_classifier(config: SeverityClassifierConfig, builder: Builder
         Returns:
             A severity classification with explanation.
         """
-        from langchain_core.messages import HumanMessage, SystemMessage
+        from langchain_core.messages import HumanMessage
+        from langchain_core.messages import SystemMessage
 
         messages = [
             SystemMessage(content=SEVERITY_CLASSIFIER_PROMPT),

@@ -31,8 +31,6 @@ requires-python = ">=3.11,<3.14"
 description = "Kubernetes Infrastructure Monitor using NeMo Agent Toolkit"
 dependencies = [
     "nvidia-nat[eval,langchain,profiler,test]~=1.5",
-    "langchain-core",
-    "langgraph>=0.0.10",
 ]
 keywords = ["ai", "kubernetes", "monitoring", "agents"]
 classifiers = ["Programming Language :: Python"]

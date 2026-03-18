@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tool for checking Kubernetes pod health across namespaces."""
 
 import json
@@ -33,10 +32,8 @@ class PodHealthToolConfig(FunctionBaseConfig, name="pod_health_check"):
 
     offline_mode: bool = Field(default=True, description="Whether to run in offline mode")
     kubeconfig_path: str | None = Field(default=None, description="Path to kubeconfig file")
-    namespaces: list[str] | None = Field(
-        default=None,
-        description="Specific namespaces to check. If None, checks all namespaces."
-    )
+    namespaces: list[str] | None = Field(default=None,
+                                         description="Specific namespaces to check. If None, checks all namespaces.")
 
 
 @register_function(config_type=PodHealthToolConfig)
@@ -93,13 +90,14 @@ def _run_live(kubeconfig_path: str | None, namespaces: list[str] | None) -> str:
             try:
                 result = subprocess.run(
                     [*cmd_base, "get", "pods", "-n", ns, "-o", "wide", "--no-headers"],
-                    capture_output=True, text=True, timeout=30, check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    check=False,
                 )
                 if result.returncode != 0:
-                    sections.append(
-                        f"### Namespace: {ns}\nError: kubectl failed\n"
-                        f"```\n{(result.stderr or result.stdout).strip()}\n```"
-                    )
+                    sections.append(f"### Namespace: {ns}\nError: kubectl failed\n"
+                                    f"```\n{(result.stderr or result.stdout).strip()}\n```")
                 else:
                     sections.append(f"### Namespace: {ns}\n```\n{result.stdout.strip()}\n```")
             except subprocess.TimeoutExpired:
@@ -107,15 +105,24 @@ def _run_live(kubeconfig_path: str | None, namespaces: list[str] | None) -> str:
     else:
         try:
             result = subprocess.run(
-                [*cmd_base, "get", "pods", *ns_flag, "-o", "wide", "--no-headers",
-                 "--field-selector=status.phase!=Running,status.phase!=Succeeded"],
-                capture_output=True, text=True, timeout=30, check=False,
+                [
+                    *cmd_base,
+                    "get",
+                    "pods",
+                    *ns_flag,
+                    "-o",
+                    "wide",
+                    "--no-headers",
+                    "--field-selector=status.phase!=Running,status.phase!=Succeeded"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
             )
             if result.returncode != 0:
-                sections.append(
-                    "Error: kubectl failed while fetching pod status\n"
-                    f"```\n{(result.stderr or result.stdout).strip()}\n```"
-                )
+                sections.append("Error: kubectl failed while fetching pod status\n"
+                                f"```\n{(result.stderr or result.stdout).strip()}\n```")
             else:
                 unhealthy = result.stdout.strip()
                 if unhealthy:
@@ -128,11 +135,20 @@ def _run_live(kubeconfig_path: str | None, namespaces: list[str] | None) -> str:
     # Check for pods with high restart counts (> 5)
     try:
         result = subprocess.run(
-            [*cmd_base, "get", "pods", "--all-namespaces", "-o",
-             "jsonpath={range .items[*]}{.metadata.namespace}{' '}"
-             "{.metadata.name}{' '}{range .status.containerStatuses[*]}"
-             "{.restartCount}{' '}{end}{'\\n'}{end}"],
-            capture_output=True, text=True, timeout=30, check=False,
+            [
+                *cmd_base,
+                "get",
+                "pods",
+                "--all-namespaces",
+                "-o",
+                "jsonpath={range .items[*]}{.metadata.namespace}{' '}"
+                "{.metadata.name}{' '}{range .status.containerStatuses[*]}"
+                "{.restartCount}{' '}{end}{'\\n'}{end}"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode == 0:
             high_restarts = []
@@ -153,9 +169,7 @@ def _run_live(kubeconfig_path: str | None, namespaces: list[str] | None) -> str:
 
 def _get_default_healthy_response() -> str:
     """Return a default healthy pod status response for offline mode."""
-    return (
-        "## Pod Health Summary\n"
-        "All pods are in Running or Succeeded state across all namespaces.\n\n"
-        "## High Restart Pods\n"
-        "No pods with excessive restart counts detected."
-    )
+    return ("## Pod Health Summary\n"
+            "All pods are in Running or Succeeded state across all namespaces.\n\n"
+            "## High Restart Pods\n"
+            "No pods with excessive restart counts detected.")

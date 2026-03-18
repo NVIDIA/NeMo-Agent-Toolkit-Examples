@@ -121,11 +121,9 @@ async def k8s_infra_monitor_workflow(config: K8sInfraMonitorWorkflowConfig, buil
 
         if not result:
             utils.logger.warning("Agent returned empty report (input_length=%d)", len(input_message))
-            result = (
-                "The agent was unable to generate a diagnostic report for this query. "
-                "This may indicate the LLM model is insufficient for the task complexity. "
-                "Consider using a larger model (e.g. meta/llama-3.3-70b-instruct).\n\n"
-            )
+            result = ("The agent was unable to generate a diagnostic report for this query. "
+                      "This may indicate the LLM model is insufficient for the task complexity. "
+                      "Consider using a larger model (e.g. meta/llama-3.3-70b-instruct).\n\n")
 
         # Append severity classification
         severity = await severity_tool.arun(result)

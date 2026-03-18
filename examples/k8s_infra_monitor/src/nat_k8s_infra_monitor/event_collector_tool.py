@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tool for collecting and analyzing Kubernetes cluster events."""
 
 import json
@@ -87,17 +86,23 @@ def _run_live(kubeconfig_path: str | None, event_limit: int) -> str:
     # Get warning events
     try:
         result = subprocess.run(
-            [*cmd_base, "get", "events", "--all-namespaces",
-             "--field-selector=type=Warning",
-             "--sort-by=.lastTimestamp",
-             "--no-headers"],
-            capture_output=True, text=True, timeout=30, check=False,
+            [
+                *cmd_base,
+                "get",
+                "events",
+                "--all-namespaces",
+                "--field-selector=type=Warning",
+                "--sort-by=.lastTimestamp",
+                "--no-headers"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl failed while fetching warning events\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl failed while fetching warning events\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         else:
             warnings = result.stdout.strip()
             if warnings:
@@ -111,27 +116,32 @@ def _run_live(kubeconfig_path: str | None, event_limit: int) -> str:
     # Get recent events summary
     try:
         result = subprocess.run(
-            [*cmd_base, "get", "events", "--all-namespaces",
-             "--sort-by=.lastTimestamp",
-             "-o", "custom-columns="
-             "NAMESPACE:.metadata.namespace,"
-             "TYPE:.type,"
-             "REASON:.reason,"
-             "OBJECT:.involvedObject.kind/.involvedObject.name,"
-             "MESSAGE:.message",
-             "--no-headers"],
-            capture_output=True, text=True, timeout=30, check=False,
+            [
+                *cmd_base,
+                "get",
+                "events",
+                "--all-namespaces",
+                "--sort-by=.lastTimestamp",
+                "-o",
+                "custom-columns="
+                "NAMESPACE:.metadata.namespace,"
+                "TYPE:.type,"
+                "REASON:.reason,"
+                "OBJECT:.involvedObject.kind/.involvedObject.name,"
+                "MESSAGE:.message",
+                "--no-headers"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl failed while fetching recent events\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl failed while fetching recent events\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         elif result.stdout.strip():
             lines = result.stdout.strip().split("\n")[:event_limit]
-            sections.append(
-                f"## Recent Events ({len(lines)} most recent)\n```\n" + "\n".join(lines) + "\n```"
-            )
+            sections.append(f"## Recent Events ({len(lines)} most recent)\n```\n" + "\n".join(lines) + "\n```")
     except subprocess.TimeoutExpired:
         pass
 
@@ -140,10 +150,8 @@ def _run_live(kubeconfig_path: str | None, event_limit: int) -> str:
 
 def _get_default_healthy_response() -> str:
     """Return a default healthy event response for offline mode."""
-    return (
-        "## Warning Events\n"
-        "No warning events found.\n\n"
-        "## Recent Events\n"
-        "Recent events are routine: Pulled, Created, Started, Scheduled. "
-        "No abnormal patterns detected."
-    )
+    return ("## Warning Events\n"
+            "No warning events found.\n\n"
+            "## Recent Events\n"
+            "Recent events are routine: Pulled, Created, Started, Scheduled. "
+            "No abnormal patterns detected.")

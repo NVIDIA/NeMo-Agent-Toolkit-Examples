@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tool for analyzing Kubernetes resource pressure and capacity."""
 
 import json
@@ -33,12 +32,14 @@ class ResourcePressureToolConfig(FunctionBaseConfig, name="resource_pressure_che
 
     offline_mode: bool = Field(default=True, description="Whether to run in offline mode")
     kubeconfig_path: str | None = Field(default=None, description="Path to kubeconfig file")
-    cpu_threshold_percent: int = Field(
-        default=80, ge=0, le=100, description="CPU utilization threshold to flag as pressure"
-    )
-    memory_threshold_percent: int = Field(
-        default=85, ge=0, le=100, description="Memory utilization threshold to flag as pressure"
-    )
+    cpu_threshold_percent: int = Field(default=80,
+                                       ge=0,
+                                       le=100,
+                                       description="CPU utilization threshold to flag as pressure")
+    memory_threshold_percent: int = Field(default=85,
+                                          ge=0,
+                                          le=100,
+                                          description="Memory utilization threshold to flag as pressure")
 
 
 @register_function(config_type=ResourcePressureToolConfig)
@@ -100,16 +101,22 @@ def _run_live(
     # Get node conditions (pressure indicators)
     try:
         result = subprocess.run(
-            [*cmd_base, "get", "nodes", "-o",
-             "jsonpath={range .items[*]}{.metadata.name}{'\\t'}"
-             "{range .status.conditions[*]}{.type}={.status}{' '}{end}{'\\n'}{end}"],
-            capture_output=True, text=True, timeout=30, check=False,
+            [
+                *cmd_base,
+                "get",
+                "nodes",
+                "-o",
+                "jsonpath={range .items[*]}{.metadata.name}{'\\t'}"
+                "{range .status.conditions[*]}{.type}={.status}{' '}{end}{'\\n'}{end}"
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl failed while fetching node conditions\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl failed while fetching node conditions\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         else:
             conditions = result.stdout.strip()
             pressure_nodes = []
@@ -130,13 +137,14 @@ def _run_live(
     try:
         result = subprocess.run(
             [*cmd_base, "top", "nodes"],
-            capture_output=True, text=True, timeout=30, check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
         )
         if result.returncode != 0:
-            sections.append(
-                "Error: kubectl top failed\n"
-                f"```\n{(result.stderr or result.stdout).strip()}\n```"
-            )
+            sections.append("Error: kubectl top failed\n"
+                            f"```\n{(result.stderr or result.stdout).strip()}\n```")
         else:
             top_output = result.stdout.strip()
             sections.append(f"## Node Resource Utilization\n```\n{top_output}\n```")
@@ -167,13 +175,11 @@ def _run_live(
 
 def _get_default_healthy_response() -> str:
     """Return a default healthy resource pressure response for offline mode."""
-    return (
-        "## Node Pressure Conditions\n"
-        "No nodes reporting pressure conditions (MemoryPressure, DiskPressure, PIDPressure all False).\n\n"
-        "## Node Resource Utilization\n"
-        "All nodes operating within normal resource thresholds.\n"
-        "- worker-1: CPU 45%, Memory 62%\n"
-        "- worker-2: CPU 32%, Memory 48%\n\n"
-        "## Nodes Exceeding Thresholds\n"
-        "None."
-    )
+    return ("## Node Pressure Conditions\n"
+            "No nodes reporting pressure conditions (MemoryPressure, DiskPressure, PIDPressure all False).\n\n"
+            "## Node Resource Utilization\n"
+            "All nodes operating within normal resource thresholds.\n"
+            "- worker-1: CPU 45%, Memory 62%\n"
+            "- worker-2: CPU 32%, Memory 48%\n\n"
+            "## Nodes Exceeding Thresholds\n"
+            "None.")
