@@ -3,6 +3,7 @@
 # Regular expressions are parsed according to the Go syntax: https://golang.org/pkg/regexp/syntax/
 
 [Aa]gentic
+[Aa]llowlist(ed|ing)?
 [Aa]gno
 AIQ
 API(s?)
@@ -24,6 +25,7 @@ arXiv
 # clangd is never capitalized even at the start of a sentence https://clangd.llvm.org/
 clangd
 CMake
+Coinbase
 [Cc]omposability
 [Cc]omposable
 Conda
@@ -48,6 +50,7 @@ DB(s?)
 [Dd]evcontainer(s?)
 [Dd]ocstring(s?)
 [Ee]mbedder(s?)
+Ethereum
 [Ee]ngineerable
 [Ee]val
 [Ee]xplainability
