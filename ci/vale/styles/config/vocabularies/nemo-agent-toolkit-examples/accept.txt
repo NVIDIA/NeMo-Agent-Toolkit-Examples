@@ -7,6 +7,7 @@
 [Aa]gno
 AIQ
 API(s?)
+Arbitrum
 Arize
 arXiv
 [Aa]sync
@@ -23,6 +24,8 @@ arXiv
 [Cc]ategorizer
 [Cc]hatbot(s?)
 # clangd is never capitalized even at the start of a sentence https://clangd.llvm.org/
+[Bb]lockchain
+[Cc]ounterpart(y|ies)
 clangd
 CMake
 Coinbase
@@ -73,6 +76,7 @@ LangSmith
 libcudf
 LLM(s?)
 # https://github.com/logpai/loghub/
+[Ll]ookup(s?)
 Loghub
 Mem0
 Milvus
@@ -90,6 +94,8 @@ npm
 NumPy
 NVIDIA
 OAuth
+[Pp]ermissionless
+[Ss]ubtask(s?)
 URIs
 OTel
 onboarding
