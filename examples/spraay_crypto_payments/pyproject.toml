@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES.
+# SPDX-License-Identifier: Apache-2.0
+
 [project]
 name = "spraay-crypto-payments"
 version = "0.1.0"
@@ -6,7 +9,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "nvidia-nat>=1.5.0",
+    "nvidia-nat>=1.3.0",
     "httpx>=0.27.0",
 ]
 
@@ -16,3 +19,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.entry-points.'nat.components']
+spraay_crypto_payments = "spraay_crypto_payments.register"

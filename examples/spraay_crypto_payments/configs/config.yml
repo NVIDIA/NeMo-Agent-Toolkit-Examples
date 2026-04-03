@@ -2,50 +2,46 @@
 # NeMo Agent Toolkit workflow configuration
 #
 # This agent uses the Spraay x402 gateway to execute cryptocurrency
-# payments across 13 blockchains via USDC micropayments.
+# payments across 15 blockchains via USDC micropayments.
 
 functions:
-  # Query tools (free endpoints — no x402 payment required)
+  # Free query tools (no x402 payment required)
   spraay_health:
-    _type: spraay_health
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /health
+    method: GET
     description: "Check the health status of the Spraay x402 gateway"
 
   spraay_routes:
-    _type: spraay_routes
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /v1/routes
+    method: GET
     description: "List all available Spraay gateway routes with pricing info"
 
   spraay_chains:
-    _type: spraay_chains
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /v1/chains
+    method: GET
     description: "List all supported blockchains on the Spraay gateway"
 
   spraay_balance:
-    _type: spraay_balance
+    _type: spraay_balance_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
     description: "Check the token balance of a wallet address on a specific chain"
 
   spraay_price:
-    _type: spraay_price
+    _type: spraay_price_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
     description: "Get the current price of a token on a specific chain"
-
-  # Action tools (paid endpoints — requires x402 USDC payment)
-  spraay_batch_send:
-    _type: spraay_batch_send
-    description: "Send tokens to multiple recipients in a single batch transaction"
-
-  spraay_escrow_create:
-    _type: spraay_escrow_create
-    description: "Create an escrow contract with milestone-based fund releases"
-
-  spraay_rtp_discover:
-    _type: spraay_rtp_discover
-    description: "Discover available robots and IoT devices on the RTP network"
 
 llms:
   nim_llm:
     _type: nim
-    model_name: nvidia/nemotron-3-nano-30b-a3b
+    model_name: meta/llama-3.1-70b-instruct
     temperature: 0.0
-    chat_template_kwargs:
-      enable_thinking: false
 
 workflow:
   _type: react_agent
@@ -55,9 +51,6 @@ workflow:
     - spraay_chains
     - spraay_balance
     - spraay_price
-    - spraay_batch_send
-    - spraay_escrow_create
-    - spraay_rtp_discover
   llm_name: nim_llm
   verbose: true
   parse_agent_response_max_retries: 3
