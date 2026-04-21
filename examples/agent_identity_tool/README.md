@@ -138,32 +138,159 @@ cp src/nat_agent_identity/configs/identity-agent.example.yml \
 
 # Set NVIDIA API key for the LLM
 export NVIDIA_API_KEY="your-nvidia-api-key"
-
-# Run the agent
-nat run --config_file src/nat_agent_identity/configs/identity-agent.yml
 ```
 
-### 4. Test the Agent
+### 4. Validate End to End with NeMo Agent Toolkit
 
-Once running, try these prompts:
+Use two terminals so the mock registry and NAT workflow run at the same time.
 
-```
-> Verify whether agent 0x1234567890abcdef1234567890abcdef12345678 is trustworthy
-```
+**Terminal 1**
 
-Expected: TRUST decision with 87.5 reputation score and market-data capabilities.
-
-```
-> Check the reputation of 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+```bash
+cd examples/agent_identity_tool
+python scripts/mock_registry_server.py
 ```
 
-Expected: REJECT decision with 12.0 reputation and revoked identity.
+Expected startup output:
 
-```
-> Is 0x0000000000000000000000000000000000000000 a registered agent?
+```console
+INFO:__main__:Mock ERC-8004 registry running on http://localhost:8500
+INFO:__main__:Test agents:
+INFO:__main__:  Trusted:  0x1234567890abcdef1234567890abcdef12345678
+INFO:__main__:  Revoked:  0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef
+INFO:__main__:  Expired:  0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+INFO:__main__:  Unknown:  0x0000000000000000000000000000000000000000
 ```
 
-Expected: REJECT with "No on-chain identity found."
+**Terminal 2**
+
+```bash
+cd examples/agent_identity_tool
+cp src/nat_agent_identity/configs/identity-agent.example.yml \
+   src/nat_agent_identity/configs/identity-agent.yml
+export NVIDIA_API_KEY="your-nvidia-api-key"
+```
+
+The commands below use the default config in `identity-agent.example.yml`, including `min_reputation_score: 50.0`. Each prompt asks the agent to return the tool output exactly so the expected workflow result is stable.
+
+#### Example A: Trusted agent
+
+Run the workflow:
+
+```bash
+nat run --config_file src/nat_agent_identity/configs/identity-agent.yml \
+  --input "Run verify_agent_identity for 0x1234567890abcdef1234567890abcdef12345678 and return the tool output exactly with no extra wording."
+```
+
+Expected output:
+
+```console
+--------------------------------------------------
+Workflow Result:
+Trust Decision: TRUST
+
+--- Identity ---
+Agent ID: 42
+Owner: 0xaaaa000000000000000000000000000000000001
+Registered: 2026-01-15T10:30:00Z
+Agent URI: agent://market-data-provider.eth
+Capabilities: market-data, historical-quotes, real-time-pricing
+Service Endpoints:
+  - x402-api: https://api.example.com/v1/market-data
+  - websocket: wss://ws.example.com/stream
+Metadata:
+  model: gpt-4-turbo
+  framework: NeMo Agent Toolkit
+  version: 1.4.0
+
+--- Reputation ---
+Agent ID: 42
+Overall Score: 87.5/100
+Total Reviews: 156
+Positive: 142
+Negative: 14
+Category Scores:
+  accuracy: 92.0/100
+  reliability: 88.5/100
+  speed: 79.0/100
+  cost_efficiency: 85.0/100
+Recent Feedback (3 entries):
+  [+5] Accurate market data, fast response times (from 0xfeed0000...)
+  [+4] Good data quality, slightly slow during peak (from 0xfeed0000...)
+  [-2] Returned stale data for NVDA after hours (from 0xfeed0000...)
+
+--- Reasons ---
+  - Reputation score 87.5 meets threshold 50.0
+--------------------------------------------------
+```
+
+#### Example B: Revoked agent
+
+Run the workflow:
+
+```bash
+nat run --config_file src/nat_agent_identity/configs/identity-agent.yml \
+  --input "Run verify_agent_identity for 0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef and return the tool output exactly with no extra wording."
+```
+
+Expected output:
+
+```console
+--------------------------------------------------
+Workflow Result:
+Trust Decision: REJECT
+
+--- Identity ---
+Agent ID: 99
+Owner: 0xbbbb000000000000000000000000000000000002
+Registered: 2026-02-20T14:00:00Z
+Agent URI: agent://untrusted-bot.eth
+Capabilities: text-generation
+Metadata:
+  model: unknown
+
+--- Reputation ---
+Agent ID: 99
+Overall Score: 12.0/100
+Total Reviews: 8
+Positive: 1
+Negative: 7
+Category Scores:
+  accuracy: 10.0/100
+  reliability: 15.0/100
+Recent Feedback (1 entries):
+  [-5] Returned fabricated data (from 0xfeed0000...)
+
+--- Reasons ---
+  - Reputation score 12.0 below threshold 50.0
+  - Agent identity has been revoked
+--------------------------------------------------
+```
+
+#### Example C: Unknown agent
+
+Run the workflow:
+
+```bash
+nat run --config_file src/nat_agent_identity/configs/identity-agent.yml \
+  --input "Run verify_agent_identity for 0x0000000000000000000000000000000000000000 and return the tool output exactly with no extra wording."
+```
+
+Expected output:
+
+```console
+--------------------------------------------------
+Workflow Result:
+{
+  "identity": null,
+  "reputation": null,
+  "trust_decision": "REJECT",
+  "reasons": [
+    "No on-chain identity found for this address"
+  ]
+}
+--------------------------------------------------
+```
 
 ## File Structure
 
