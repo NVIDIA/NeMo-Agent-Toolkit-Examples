@@ -53,6 +53,7 @@ DB(s?)
 [Ee]val
 [Ee]xplainability
 Faiss
+FFmpeg
 [Gg]eneratable
 glog
 GPU(s?)

@@ -97,9 +97,7 @@ class TestDaytonaSandboxClient:
         ):
             sandbox._get_client()
 
-            mock_config.assert_called_once_with(
-                api_key="test-key",
-            )
+            mock_config.assert_called_once_with(api_key="test-key", )
             assert sandbox._client is not None
 
 

@@ -52,15 +52,12 @@ class ImageDescribeInput(BaseModel):
     """Input schema for image_describe tool."""
 
     image_path: str = Field(
-        description="Path to the image file inside the sandbox (e.g. /workspace/input/photo.png).",
-    )
+        description="Path to the image file inside the sandbox (e.g. /workspace/input/photo.png).", )
     question: str = Field(
         default="Describe this image in detail.",
-        description=(
-            "A specific question or instruction about the image. "
-            "Examples: 'What text is visible?', 'Describe the geometric shapes.', "
-            "'What colors are used in this chart?'"
-        ),
+        description=("A specific question or instruction about the image. "
+                     "Examples: 'What text is visible?', 'Describe the geometric shapes.', "
+                     "'What colors are used in this chart?'"),
     )
 
 
@@ -120,12 +117,16 @@ class ImageDescribeTool:
         data_uri = f"data:{mime_type};base64,{b64_data}"
 
         # 4. Build multimodal message (LangChain standard format)
-        message = HumanMessage(
-            content=[
-                {"type": "text", "text": question},
-                {"type": "image_url", "image_url": {"url": data_uri}},
-            ]
-        )
+        message = HumanMessage(content=[
+            {
+                "type": "text", "text": question
+            },
+            {
+                "type": "image_url", "image_url": {
+                    "url": data_uri
+                }
+            },
+        ])
 
         # 5. Call vision LLM
         try:
@@ -164,13 +165,11 @@ def create_image_describe_tool(sandbox: BaseSandbox, vision_llm: Any) -> Structu
     return StructuredTool.from_function(
         coroutine=tool.describe,
         name="image_describe",
-        description=(
-            "Analyze an image file using a vision model. "
-            "Reads the image from the sandbox and returns a text description. "
-            "Use this for understanding visual content: charts, diagrams, geometric shapes, "
-            "screenshots, handwritten text, musical notation, photos, etc. "
-            "For pixel-level processing (cropping, color extraction, OCR coordinates), "
-            "use the python tool with PIL/OpenCV instead."
-        ),
+        description=("Analyze an image file using a vision model. "
+                     "Reads the image from the sandbox and returns a text description. "
+                     "Use this for understanding visual content: charts, diagrams, geometric shapes, "
+                     "screenshots, handwritten text, musical notation, photos, etc. "
+                     "For pixel-level processing (cropping, color extraction, OCR coordinates), "
+                     "use the python tool with PIL/OpenCV instead."),
         args_schema=ImageDescribeInput,
     )

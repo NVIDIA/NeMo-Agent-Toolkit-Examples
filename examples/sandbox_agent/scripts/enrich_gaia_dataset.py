@@ -92,19 +92,21 @@ def enrich_dataset(input_path: str, output_path: str) -> None:
 
     # Show a sample
     sample = df[has_file].iloc[0]
-    print(f"\nSample enriched question (first 200 chars):")
+    print("\nSample enriched question (first 200 chars):")
     print(f"  {sample['Question'][:200]}")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Enrich GAIA dataset with attachment file paths")
     parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         default=str(_DEFAULT_INPUT),
         help=f"Input parquet path (default: {_DEFAULT_INPUT})",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default=str(_DEFAULT_OUTPUT),
         help=f"Output parquet path (default: {_DEFAULT_OUTPUT})",
     )

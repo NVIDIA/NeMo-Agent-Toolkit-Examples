@@ -192,15 +192,15 @@ The sandbox provides an isolated workspace:
 ```
 
 **Pre-installed in nat-sandbox image:**
-- Data processing: pandas, NumPy, matplotlib, seaborn, SymPy
-- Web: requests, httpx, beautifulsoup4
-- Browser: playwright (Chromium)
-- PDF: pdfplumber, pypdf, pdf2image, poppler-utils
-- OCR: pytesseract, tesseract-ocr
-- Computer vision: opencv-python-headless
-- Audio: faster-whisper (with pre-downloaded tiny model), FFmpeg
-- Documents: python-pptx, python-docx, reportlab
-- Utilities: pillow, pyyaml, openpyxl
+- Data processing: `pandas`, `numpy`, `matplotlib`, `seaborn`, `sympy`
+- Web: `requests`, `httpx`, `beautifulsoup4`
+- Browser: `playwright` (Chromium)
+- PDF: `pdfplumber`, `pypdf`, `pdf2image`, `poppler-utils`
+- OCR: `pytesseract`, `tesseract-ocr`
+- Computer vision: `opencv-python-headless`
+- Audio: `faster-whisper` (with pre-downloaded tiny model), FFmpeg
+- Documents: `python-pptx`, `python-docx`, `reportlab`
+- Utilities: `pillow`, `pyyaml`, `openpyxl`
 
 ## GAIA Benchmark Evaluation
 

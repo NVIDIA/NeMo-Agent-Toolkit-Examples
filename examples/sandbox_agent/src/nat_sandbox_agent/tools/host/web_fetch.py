@@ -34,9 +34,7 @@ from nat_sandbox_agent.tools.common import DEFAULT_MAX_OUTPUT_CHARS
 logger = logging.getLogger(__name__)
 
 # Default user agent for fetch requests
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (compatible; NATSandboxAgent/1.0; +https://github.com/NVIDIA/NeMo-Agent-Toolkit)"
-)
+DEFAULT_USER_AGENT = ("Mozilla/5.0 (compatible; NATSandboxAgent/1.0; +https://github.com/NVIDIA/NeMo-Agent-Toolkit)")
 
 # Default max content length (characters) returned per call
 DEFAULT_MAX_LENGTH = 5000
@@ -54,10 +52,8 @@ class WebFetchInput(BaseModel):
     )
     start_index: int = Field(
         default=0,
-        description=(
-            "Character position to start reading from. "
-            "Use this to paginate through long pages. Default is 0."
-        ),
+        description=("Character position to start reading from. "
+                     "Use this to paginate through long pages. Default is 0."),
         ge=0,
     )
     raw: bool = Field(
@@ -93,9 +89,9 @@ async def web_fetch(
 
     try:
         async with httpx.AsyncClient(
-            follow_redirects=True,
-            timeout=30.0,
-            headers={"User-Agent": DEFAULT_USER_AGENT},
+                follow_redirects=True,
+                timeout=30.0,
+                headers={"User-Agent": DEFAULT_USER_AGENT},
         ) as client:
             response = await client.get(url)
             response.raise_for_status()
@@ -154,10 +150,8 @@ async def web_fetch(
             result["next_start_index"] = start_index + max_length
             result["remaining"] = total_length - (start_index + max_length)
 
-        logger.info(
-            f"Web fetch returned {len(content)} chars "
-            f"(total={total_length}, start={start_index})"
-        )
+        logger.info(f"Web fetch returned {len(content)} chars "
+                    f"(total={total_length}, start={start_index})")
         return result
 
     except httpx.HTTPStatusError as e:
@@ -183,9 +177,7 @@ async def web_fetch(
         }
 
 
-def create_web_fetch_tool(
-    max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS,
-) -> StructuredTool:
+def create_web_fetch_tool(max_output_chars: int = DEFAULT_MAX_OUTPUT_CHARS, ) -> StructuredTool:
     """Create the web fetch tool.
 
     Args:
@@ -196,19 +188,17 @@ def create_web_fetch_tool(
     """
     return StructuredTool.from_function(
         coroutine=lambda url, max_length=DEFAULT_MAX_LENGTH, start_index=0, raw=False: web_fetch(
-            url, max_length, start_index, raw, max_output_chars
-        ),
+            url, max_length, start_index, raw, max_output_chars),
         name="web_fetch",
-        description=(
-            "Fetch a webpage and convert it to clean Markdown text. "
-            "Much faster than web_browse but does NOT render JavaScript. "
-            "Use this for static pages, articles, documentation, and API responses. "
-            "Use 'start_index' to paginate through long content. "
-            "Tip: also works with JSON APIs — useful URLs include: "
-            "Wikipedia edit history: https://en.wikipedia.org/w/api.php?action=query&titles=TITLE&prop=revisions&rvlimit=50&rvprop=timestamp|comment|user&format=json ; "
-            "GitHub issue events: https://api.github.com/repos/OWNER/REPO/issues/NUM/events ; "
-            "GitHub issue timeline: https://api.github.com/repos/OWNER/REPO/issues/NUM/timeline ; "
-            "arXiv monthly listings: https://arxiv.org/list/CATEGORY/YYMM"
-        ),
+        description=("Fetch a webpage and convert it to clean Markdown text. "
+                     "Much faster than web_browse but does NOT render JavaScript. "
+                     "Use this for static pages, articles, documentation, and API responses. "
+                     "Use 'start_index' to paginate through long content. "
+                     "Tip: also works with JSON APIs — useful URLs include: "
+                     "Wikipedia edit history: https://en.wikipedia.org/w/api.php?action=query"
+                     "&titles=TITLE&prop=revisions&rvlimit=50&rvprop=timestamp|comment|user&format=json ; "
+                     "GitHub issue events: https://api.github.com/repos/OWNER/REPO/issues/NUM/events ; "
+                     "GitHub issue timeline: https://api.github.com/repos/OWNER/REPO/issues/NUM/timeline ; "
+                     "arXiv monthly listings: https://arxiv.org/list/CATEGORY/YYMM"),
         args_schema=WebFetchInput,
     )

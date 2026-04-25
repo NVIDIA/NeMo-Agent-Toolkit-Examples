@@ -108,7 +108,8 @@ class TestImageDescribeTool:
     @pytest.mark.asyncio
     async def test_describe_file_not_found(self, image_tool, mock_sandbox):
         """Test handling when image file does not exist."""
-        mock_sandbox.read_file_bytes = AsyncMock(side_effect=FileNotFoundError("File not found: /workspace/input/missing.png"))
+        mock_sandbox.read_file_bytes = AsyncMock(
+            side_effect=FileNotFoundError("File not found: /workspace/input/missing.png"))
 
         result = await image_tool.describe("/workspace/input/missing.png")
 

@@ -288,9 +288,9 @@ class TestWebFetch:
         mock_resp = MagicMock(spec=httpx.Response)
         mock_resp.status_code = 404
         mock_resp.reason_phrase = "Not Found"
-        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Not Found", request=MagicMock(), response=mock_resp
-        )
+        mock_resp.raise_for_status.side_effect = httpx.HTTPStatusError("Not Found",
+                                                                       request=MagicMock(),
+                                                                       response=mock_resp)
 
         with patch("nat_sandbox_agent.tools.host.web_fetch.httpx.AsyncClient") as MockClient:
             mock_ctx = AsyncMock()
@@ -365,5 +365,3 @@ class TestCreateWebFetchTool:
         """Test that max_output_chars parameter is accepted."""
         tool = create_web_fetch_tool(max_output_chars=5000)
         assert tool is not None
-
-
