@@ -1,0 +1,3 @@
+# Local config (copied from .example.yml)
+src/nat_x402_payment/configs/payment-agent.yml
+.venv/
