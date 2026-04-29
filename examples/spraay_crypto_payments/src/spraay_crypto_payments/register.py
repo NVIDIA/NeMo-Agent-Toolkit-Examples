@@ -1,7 +1,18 @@
-# SPDX-FileCopyrightText: Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
-
-"""Spraay x402 Gateway tools — NeMo Agent Toolkit registration.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Spraay x402 Gateway tools - NeMo Agent Toolkit registration.
 
 Registers Spraay gateway tools using the @register_function decorator
 so they can be referenced by _type in workflow config.yml files.
@@ -24,7 +35,7 @@ from .spraay_client import SpraayClient
 logger = logging.getLogger(__name__)
 
 
-# ── Configuration classes ────────────────────────────────────────────────────
+# Configuration classes
 # Each _type in config.yml maps to a FunctionBaseConfig subclass via its name=.
 
 
@@ -62,7 +73,7 @@ class SpraayPriceToolConfig(FunctionBaseConfig, name="spraay_price_tool"):
     )
 
 
-# ── Tool registrations ──────────────────────────────────────────────────────
+# Tool registrations
 
 
 @register_function(config_type=SpraayGatewayToolConfig)
@@ -76,7 +87,7 @@ async def spraay_gateway_tool(config: SpraayGatewayToolConfig, builder: Builder)
         """Query the Spraay x402 gateway.
 
         Fetches data from the configured Spraay gateway endpoint.
-        This is a free query — no x402 USDC payment is required.
+        This is a free query - no x402 USDC payment is required.
 
         Args:
             query: A natural language description of what to look up
@@ -102,7 +113,7 @@ async def spraay_balance_tool(config: SpraayBalanceToolConfig, builder: Builder)
     async def _check_balance(query: str) -> str:
         """Check the token balance of a wallet address on a specific blockchain.
 
-        This is a free query — no x402 USDC payment is required.
+        This is a free query - no x402 USDC payment is required.
 
         Args:
             query: A string containing the wallet address and optionally
@@ -150,7 +161,7 @@ async def spraay_price_tool(config: SpraayPriceToolConfig, builder: Builder):
     async def _get_price(query: str) -> str:
         """Get the current price of a token on a specific blockchain.
 
-        This is a free query — no x402 USDC payment is required.
+        This is a free query - no x402 USDC payment is required.
 
         Args:
             query: A string containing the token symbol and optionally

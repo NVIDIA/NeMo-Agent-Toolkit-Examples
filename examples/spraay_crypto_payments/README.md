@@ -1,13 +1,30 @@
+<!--
+SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-License-Identifier: Apache-2.0
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 # Spraay Crypto Payments Agent
 
 An AI agent that queries cryptocurrency data across 15 blockchains using the
 [Spraay x402 gateway](https://gateway.spraay.app). The agent can check gateway
 health, list supported chains and routes, look up wallet balances, and get
-token prices — all through natural language.
+token prices - all through natural language.
 
 ## Overview
 
-This example demonstrates how to build a **crypto query agent** using NeMo
+This example demonstrates how to build a crypto query agent using NeMo
 Agent Toolkit with custom tools that interact with the Spraay x402 protocol
 gateway. The agent uses a ReAct pattern to reason about queries and execute
 them via HTTP API calls.
@@ -22,8 +39,8 @@ and the server executes the operation.
 
 ### Supported Chains
 
-Base · Ethereum · Arbitrum · Polygon · BNB Chain · Avalanche · Solana ·
-Bitcoin · Stacks · Unichain · Plasma · BOB · Bittensor · Stellar · XRP Ledger
+Base, Ethereum, Arbitrum, Polygon, BNB Chain, Avalanche, Solana,
+Bitcoin, Stacks, Unichain, Plasma, BOB, Bittensor, Stellar, XRP Ledger.
 
 ## Prerequisites
 
@@ -111,31 +128,25 @@ Workflow Result: ['Yes, the Spraay x402 gateway is healthy...']
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│         NeMo Agent Toolkit              │
-│                                         │
-│  ┌───────────────────────────────────┐  │
-│  │     ReAct Agent (Llama 3.1)      │  │
-│  │                                   │  │
-│  │  Tools:                           │  │
-│  │  ├── spraay_health               │  │
-│  │  ├── spraay_routes               │  │
-│  │  ├── spraay_chains               │  │
-│  │  ├── spraay_balance              │  │
-│  │  └── spraay_price                │  │
-│  └──────────────┬────────────────────┘  │
-│                 │                        │
-└─────────────────┼────────────────────────┘
-                  │ HTTP + x402
-                  ▼
-     ┌────────────────────────┐
-     │  Spraay x402 Gateway   │
-     │  gateway.spraay.app    │
-     │                        │
-     │  84+ paid endpoints    │
-     │  15 blockchains        │
-     │  USDC micropayments    │
-     └────────────────────────┘
+NeMo Agent Toolkit
+    |
+    v
+ReAct Agent (Llama 3.1)
+    |
+    +-- spraay_health
+    +-- spraay_routes
+    +-- spraay_chains
+    +-- spraay_balance
+    +-- spraay_price
+    |
+    v
+HTTP + x402
+    |
+    v
+Spraay x402 Gateway (gateway.spraay.app)
+    - 84+ paid endpoints
+    - 15 blockchains
+    - USDC micropayments
 ```
 
 ## Files
