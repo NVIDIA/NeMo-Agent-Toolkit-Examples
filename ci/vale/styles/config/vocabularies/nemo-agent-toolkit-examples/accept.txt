@@ -70,6 +70,7 @@ httpx
 isort
 Jira
 jsonlines
+Kaggle('s)?
 Langfuse
 LangSmith
 # libcudf isn't styled in the way that cuDF is https://docs.rapids.ai/api/libcudf/stable/
