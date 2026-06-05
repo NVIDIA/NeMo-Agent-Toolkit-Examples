@@ -1,0 +1,56 @@
+# Spraay Crypto Payments Agent
+# NeMo Agent Toolkit workflow configuration
+#
+# This agent uses the Spraay x402 gateway to execute cryptocurrency
+# payments across 15 blockchains via USDC micropayments.
+
+functions:
+  # Free query tools (no x402 payment required)
+  spraay_health:
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /health
+    method: GET
+    description: "Check the health status of the Spraay x402 gateway"
+
+  spraay_routes:
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /v1/routes
+    method: GET
+    description: "List all available Spraay gateway routes with pricing info"
+
+  spraay_chains:
+    _type: spraay_gateway_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    endpoint: /v1/chains
+    method: GET
+    description: "List all supported blockchains on the Spraay gateway"
+
+  spraay_balance:
+    _type: spraay_balance_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    description: "Check the token balance of a wallet address on a specific chain"
+
+  spraay_price:
+    _type: spraay_price_tool
+    gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
+    description: "Get the current price of a token on a specific chain"
+
+llms:
+  nim_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+
+workflow:
+  _type: react_agent
+  tool_names:
+    - spraay_health
+    - spraay_routes
+    - spraay_chains
+    - spraay_balance
+    - spraay_price
+  llm_name: nim_llm
+  verbose: true
+  parse_agent_response_max_retries: 3
