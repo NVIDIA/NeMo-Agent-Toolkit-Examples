@@ -1,0 +1,3 @@
+# Local config (copied from .example.yml)
+src/nat_agent_identity/configs/identity-agent.yml
+.venv/
