@@ -46,7 +46,7 @@ Bitcoin, Stacks, Unichain, Plasma, BOB, Bittensor, Stellar, XRP Ledger.
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) package manager
-- NVIDIA API key from [build.nvidia.com](https://build.nvidia.com)
+- NVIDIA API key from [NVIDIA build portal](https://build.nvidia.com)
 
 ## Setup
 
