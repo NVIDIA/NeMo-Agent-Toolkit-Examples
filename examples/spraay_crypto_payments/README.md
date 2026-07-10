@@ -108,8 +108,8 @@ Number of LLMs: 1
 
 Agent's thoughts:
 Thought: The user wants to check if the Spraay gateway is healthy.
-I should use the spraay_health tool.
-Action: spraay_health
+I should use the spraay__health tool.
+Action: spraay__health
 Action Input: check health
 
 Observation: {
@@ -133,11 +133,14 @@ NeMo Agent Toolkit
     v
 ReAct Agent (Llama 3.1)
     |
-    +-- spraay_health
-    +-- spraay_routes
-    +-- spraay_chains
-    +-- spraay_balance
-    +-- spraay_price
+    v
+spraay function group (shared client)
+    |
+    +-- spraay__health
+    +-- spraay__routes
+    +-- spraay__chains
+    +-- spraay__balance
+    +-- spraay__price
     |
     v
 HTTP + x402
@@ -154,7 +157,7 @@ Spraay x402 Gateway (gateway.spraay.app)
 | File | Description |
 |------|-------------|
 | `configs/config.yml` | NeMo Agent Toolkit workflow configuration |
-| `src/spraay_crypto_payments/register.py` | Tool registration with `@register_function` |
+| `src/spraay_crypto_payments/register.py` | Tool registration with `@register_function_group` |
 | `src/spraay_crypto_payments/spraay_client.py` | Async HTTP client for the Spraay gateway |
 | `src/spraay_crypto_payments/__init__.py` | Package init |
 | `pyproject.toml` | Project dependencies and NAT entry points |
