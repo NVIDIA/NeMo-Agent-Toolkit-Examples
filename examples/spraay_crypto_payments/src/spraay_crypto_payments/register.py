@@ -125,7 +125,9 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
 
         return await client.get(
             "/v1/balance",
-            params={"address": address, "chain": chain, "token": token},
+            params={
+                "address": address, "chain": chain, "token": token
+            },
         )
 
     async def price(query: str) -> str:
@@ -154,7 +156,9 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
 
         return await client.get(
             "/v1/price",
-            params={"token": token, "chain": chain},
+            params={
+                "token": token, "chain": chain
+            },
         )
 
     group.add_function("health", health, description=health.__doc__)
