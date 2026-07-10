@@ -158,3 +158,12 @@ VectorDB
 XGBoost
 zsh
 Zep
+Arbitrum
+Bittensor
+[Bb]lockchain(s?)
+[Cc]rypto
+[Mm]icropayment(s?)
+[Rr]esend(s?)
+Solana
+[Ss]praay
+Unichain
