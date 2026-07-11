@@ -1,0 +1,59 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+llms:
+  # LLM that drives the reasoning agent. NIM is the NeMo Agent Toolkit default;
+  # swap model_name for any model available on build.nvidia.com (or use an
+  # OpenAI-compatible provider, see the README).
+  nim_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.0
+
+function_groups:
+  # Register the external Prometheus Avatar MCP server as a tool source.
+  # The server is an npm package launched over stdio; NeMo Agent Toolkit
+  # auto-discovers the avatar tools it exposes (create_avatar, speak,
+  # list_marketplace, equip_asset, get_avatar_status, share_avatar,
+  # generate_asset, update_asset, generate_image_pro).
+  prometheus_avatar:
+    _type: mcp_client
+    server:
+      transport: stdio
+      command: npx
+      args: ["-y", "@prometheusavatar/mcp-server"]
+      env:
+        # Required: create_avatar/speak/share_avatar persist to and authenticate
+        # against your Prometheus account. Register for a key
+        # (POST /api/agent/register) at https://prometheus.mythslabs.ai
+        PROMETHEUS_API_KEY: ${PROMETHEUS_API_KEY}
+        # GEMINI_API_KEY: ${GEMINI_API_KEY}   # optional, enables generate_asset
+        # OPENAI_API_KEY: ${OPENAI_API_KEY}   # optional, BYOK for generate_image_pro
+    tool_overrides:
+      create_avatar:
+        description: >
+          Create a new embodied avatar (model, voice, persona). Returns an embed
+          URL you can open in a browser to see and interact with the avatar.
+      speak:
+        description: >
+          Make the avatar speak the given text aloud with TTS and lip-sync animation.
+
+workflow:
+  # A reason-and-act agent that decides which avatar tools to call.
+  _type: react_agent
+  tool_names: [prometheus_avatar]
+  llm_name: nim_llm
+  verbose: true
+  parse_agent_response_max_retries: 3
