@@ -63,7 +63,7 @@ agent key). They persist to and authenticate against your Prometheus account.
 - [Node.js](https://nodejs.org) 18+ available on your `PATH`. The avatar server is an npm
   package launched with `npx`.
 - An LLM to drive the agent. This example defaults to an
-  [NVIDIA NIM](https://build.nvidia.com) model (`meta/llama-3.1-70b-instruct`); set
+  [NVIDIA NIM](https://build.nvidia.com) model (`nvidia/nemotron-3-nano-30b-a3b`); set
   `NVIDIA_API_KEY` with a key from the NVIDIA build portal. To use an OpenAI-compatible endpoint
   instead, see [Using a Different LLM](#using-a-different-llm).
 
