@@ -76,9 +76,17 @@ gateway client.
 **Paid Tool Modes:**
 - **Dry-run (default):** Without `EVM_PRIVATE_KEY` set, paid tools return
   structured payment quotes showing the required USDC amount, network, and
-  payment address. Safe for CI and demos.
-- **Live mode:** With `EVM_PRIVATE_KEY` set, the agent executes the full x402
-  payment flow and receives the actual API result.
+  payment address. No wallet, no signing, no funds move. Safe for CI and demos.
+- **Live mode:** With `EVM_PRIVATE_KEY` set, paid requests are routed through
+  the [x402 SDK](https://pypi.org/project/x402/) payment transport. When the
+  gateway returns `402 Payment Required` (x402Version 2), the SDK signs an
+  EIP-3009 `TransferWithAuthorization` for USDC on Base (the `exact` scheme),
+  attaches it as the `X-PAYMENT` header, and retries. The gateway's facilitator
+  settles the USDC transfer on-chain and returns the real API result together
+  with an `X-PAYMENT-RESPONSE` header containing the settlement transaction
+  hash (surfaced in the tool output under `settlement`). **This moves real
+  funds.** `spraay__batch_send` in live mode broadcasts a real batch payment to
+  every recipient in the list.
 
 ## Prerequisites
 
@@ -258,19 +266,139 @@ nat run \
 }
 ```
 
-### 5. (Optional) Live Mode Snippet
+### 5. (Optional) Live Mode — Moves Real Funds
 
-To execute a batch payment for real (requires funded wallet):
+> ⚠️ **Live mode moves real money.** With `EVM_PRIVATE_KEY` set, `batch_send`
+> broadcasts a real USDC batch payment to every recipient, and the x402 gateway
+> fee ($0.02 for batch send) is charged as a real USDC transfer on Base. Use a
+> dedicated wallet funded with only what you intend to spend. Test with a
+> single small recipient first.
+
+To execute a batch payment for real, set a **funded** Base wallet key and run
+the batch-send input directly (bypassing the agent's tool selection so exactly
+one payment is attempted):
 
 ```bash
-export EVM_PRIVATE_KEY=0x...  # Your funded Base wallet private key
+export EVM_PRIVATE_KEY=0x...  # Funded Base wallet; never commit or share this
 nat run \
   --config_file configs/config.yml \
-  --input "Send 1 USDC on base to 0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8"
+  --input 'Use the batch_send tool with this exact JSON: {"recipients":[{"to":"0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8","amount":"0.01"}],"token":"USDC","chain":"base","sender":"0xYOUR_FUNDED_WALLET_ADDRESS"}'
 ```
 
-The agent will sign the x402 payment ($0.02 USDC) and execute the batch
-transaction, returning the transaction hash and status.
+Set `sender` to the public address of the wallet derived from `EVM_PRIVATE_KEY`
+(the batch tool otherwise fills in a zero-address placeholder that is only valid
+for dry-run quotes).
+
+What happens under the hood:
+
+1. The gateway responds `402 Payment Required` (x402Version 2) with the USDC
+   `exact` payment terms on Base (`eip155:8453`).
+2. The x402 SDK signs an EIP-3009 `TransferWithAuthorization` for the fee using
+   your key, resends the request with the `X-PAYMENT` header, and the gateway's
+   facilitator settles it on-chain.
+3. The tool returns the settled API result plus a `settlement` object with the
+   transaction hash.
+
+If the wallet holds insufficient USDC, the gateway rejects the payment and the
+tool returns a structured `mode: live` error explaining why — no partial charge.
+
+**Requirements for a successful live run:**
+
+- The paying wallet (derived from `EVM_PRIVATE_KEY`) must hold USDC on Base to
+  cover both the gateway fee and the amounts being sent to recipients.
+- Install the live-mode dependencies (included by `uv pip install -e .`, which
+  pulls `x402[evm,httpx]`).
+
+#### Deterministic first live test (no agent, no LLM)
+
+For the most predictable first live run, use the standalone smoke script. It
+drives `batch_send` directly through the client — no ReAct agent, no
+`NVIDIA_API_KEY`, and exactly one payment attempt — and requires you to type
+`yes` before moving funds. Run it first with no key (dry-run quote), then with a
+funded key:
+
+```bash
+# 1. Dry-run: prints the x402 quote, no funds move.
+python scripts/live_batch_send_smoke.py
+
+# 2. Live: signs + settles the $0.02 fee and submits the batch (REAL funds).
+export EVM_PRIVATE_KEY=0x...   # funded Base wallet
+python scripts/live_batch_send_smoke.py \
+  --to 0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8 --amount 0.01
+```
+
+The script derives `sender` from your key automatically, prints a summary,
+prompts for confirmation (skip with `--yes`), and reports the settlement
+transaction hash. See `--help` for multi-recipient (`--to addr:amount`), token,
+chain, and gateway options.
+
+#### Verified live run
+
+A real run of this smoke test against the production gateway
+(`gateway.spraay.app`) — the flat batch payload parsed correctly and the x402
+gateway fee settled on **Base mainnet** (`eip155:8453`):
+
+```text
+================================================================
+Spraay batch_send smoke test
+================================================================
+  mode        : LIVE (moves real funds)
+  gateway     : https://gateway.spraay.app
+  token/chain : USDC on base
+  sender      : 0x6dc474a4EC7Bc5eA509755179317F3d95B93dc91
+  recipients  : 1
+      -> 0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8  0.33 USDC
+  total send  : 0.33 USDC (plus the $0.02 x402 gateway fee)
+================================================================
+This will move REAL funds. Type 'yes' to proceed: yes
+
+Submitting batch to https://gateway.spraay.app/api/v1/batch/execute ...
+
+{
+  "mode": "live",
+  "result": {
+    "success": true,
+    "contract": "0x1646452F98E36A3c9Cfc3eDD8868221E207B5eEC",
+    "token": {
+      "symbol": "USDC",
+      "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "decimals": 6,
+      "isETH": false
+    },
+    "batch": {
+      "recipientCount": 1,
+      "totalAmount": "0.33",
+      "fee": "0.00099",
+      "feePercent": "0.3%",
+      "totalWithFee": "0.33099"
+    },
+    "transaction": {
+      "to": "0x1646452F98E36A3c9Cfc3eDD8868221E207B5eEC",
+      "data": "0xfb83b683000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda0291300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000001000000000000000000000000ad62f03c7514bb8c51f1ea70c2b75c37404695c80000000000000000000000000000000000000000000000000000000000050910",
+      "value": "0",
+      "chainId": 8453
+    },
+    "approvalRequired": {
+      "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "spender": "0x1646452F98E36A3c9Cfc3eDD8868221E207B5eEC",
+      "amount": "330990",
+      "amountFormatted": "0.33099"
+    }
+  },
+  "settlement": {
+    "success": true,
+    "payer": "0x6dc474a4EC7Bc5eA509755179317F3d95B93dc91",
+    "transaction": "0x4a3fdb079beb6b87ca0798b4e6be98496f45fffaed8ed0227987e0c1af54fdd7",
+    "network": "eip155:8453"
+  }
+}
+```
+
+Verify on-chain:
+<https://basescan.org/tx/0x4a3fdb079beb6b87ca0798b4e6be98496f45fffaed8ed0227987e0c1af54fdd7>
+
+The `$0.02` fee is the x402 charge for `/api/v1/batch/execute`; the batch itself
+is returned as non-custodial calldata for the sender to broadcast.
 
 ## Architecture
 
@@ -313,6 +441,7 @@ Spraay x402 Gateway (gateway.spraay.app)
 | `src/spraay_crypto_payments/register.py` | Tool registration with `@register_function_group` |
 | `src/spraay_crypto_payments/spraay_client.py` | Async HTTP client with x402 support |
 | `src/spraay_crypto_payments/__init__.py` | Package init |
+| `scripts/live_batch_send_smoke.py` | Standalone batch_send smoke test (dry-run + live) |
 | `pyproject.toml` | Project dependencies and NAT entry points |
 
 ## Related Examples

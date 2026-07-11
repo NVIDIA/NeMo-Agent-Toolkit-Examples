@@ -29,6 +29,7 @@ from nat.cli.register_workflow import register_function_group
 from nat.data_models.function import FunctionGroupBaseConfig
 
 from .spraay_client import SpraayClient
+from .spraay_client import to_batch_execute_payload
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +114,9 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         """Check the token balance of a wallet address on a specific blockchain.
 
         This is a PAID endpoint ($0.005 via x402).
-        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
-        - With EVM_PRIVATE_KEY: executes payment and returns balance
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run). No funds move.
+        - With EVM_PRIVATE_KEY: pays the $0.005 fee as a real USDC transfer on
+          Base (x402 exact scheme) and returns the balance.
 
         Args:
             query: A string containing the wallet address and optionally
@@ -254,8 +256,12 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         """Execute a batch payment to up to 200 recipients in one atomic transaction.
 
         This is a PAID endpoint ($0.02 via x402). Implements BPA 1.0 spec.
-        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
-        - With EVM_PRIVATE_KEY: executes payment and returns transaction hash
+        - Without EVM_PRIVATE_KEY: returns a payment quote only (dry-run). No
+          funds move.
+        - With EVM_PRIVATE_KEY: MOVES REAL FUNDS. Signs the $0.02 x402 gateway
+          fee as a USDC EIP-3009 transfer on Base, submits the batch, and the
+          gateway broadcasts a real payment to every recipient in the list. The
+          result includes the settlement transaction hash under "settlement".
 
         Supports Base, Ethereum, Solana, and other chains. Protocol fee: 0.3%.
 
@@ -299,14 +305,20 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         if "sender" not in data:
             data["sender"] = "0x0000000000000000000000000000000000000000"  # Placeholder for dry-run
 
-        return await client.post("/api/v1/batch/execute", data)
+        # The paid execute endpoint requires parallel recipients/amounts arrays
+        # in raw base units (see its 402 bazaar schema), not the {to, amount}
+        # decimal objects the free validate/estimate endpoints accept.
+        payload = to_batch_execute_payload(data)
+
+        return await client.post("/api/v1/batch/execute", payload)
 
     async def escrow_create(query: str) -> str:
         """Create an escrow contract for conditional payment release.
 
         This is a PAID endpoint ($0.10 via x402).
-        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
-        - With EVM_PRIVATE_KEY: executes payment and creates escrow
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run). No funds move.
+        - With EVM_PRIVATE_KEY: pays the $0.10 fee as a real USDC transfer on
+          Base (x402 exact scheme) and creates the escrow.
 
         Args:
             query: JSON describing the escrow, e.g.:
@@ -324,12 +336,13 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         return await client.post("/api/v1/escrow/create", data)
 
     async def rtp_discover(query: str) -> str:
-        """Discover available RTP (Robotic Task Protocol) robots.
+        """Discover available RTP (Robot Task Protocol) robots.
 
         This is a PAID endpoint ($0.005 via x402). Filter by capability,
         chain, price range, or status.
-        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
-        - With EVM_PRIVATE_KEY: executes payment and returns robot list
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run). No funds move.
+        - With EVM_PRIVATE_KEY: pays the $0.005 fee as a real USDC transfer on
+          Base (x402 exact scheme) and returns the robot list.
 
         Args:
             query: Filter query, e.g.:
