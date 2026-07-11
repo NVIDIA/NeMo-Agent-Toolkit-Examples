@@ -100,7 +100,7 @@ with no wallet.
 ## Prerequisites
 
 - Python 3.11+
-- [uv](https://docs.astral.sh/uv/) package manager
+- NeMo Agent Toolkit >= 1.4.0 (`pip install nvidia-nat[langchain]`)
 - NVIDIA API key from [NVIDIA build portal](https://build.nvidia.com)
 
 ## Setup
@@ -114,7 +114,7 @@ cd examples/spraay_crypto_payments
 2. Install dependencies:
 
 ```bash
-uv pip install -e .
+pip install -e .
 ```
 
 3. Set environment variables:
@@ -169,6 +169,8 @@ nat run \
       "chainId": 42161,
       "status": "online"
     }
+    // ... additional chains omitted (Polygon, Optimism, Avalanche,
+    // BNB Chain, and others); the live gateway returns all supported chains
   }
 }
 ```
@@ -289,7 +291,7 @@ tool returns a structured `mode: live` error explaining why — no partial charg
 
 - The paying wallet (derived from `EVM_PRIVATE_KEY`) must hold USDC on Base to
   cover both the gateway fee and the amounts being sent to recipients.
-- Install the live-mode dependencies (included by `uv pip install -e .`, which
+- Install the live-mode dependencies (included by `pip install -e .`, which
   pulls `x402[evm,httpx]`).
 
 #### Deterministic first live test (no agent, no LLM)

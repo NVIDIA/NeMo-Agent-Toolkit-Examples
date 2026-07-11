@@ -9,7 +9,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "nvidia-nat>=1.3.0",
+    "nvidia-nat[langchain]~=1.4",
     "httpx>=0.28.1",
     # x402 payment SDK for live-mode execution. The [evm] extra pulls eth-account
     # and web3 for EIP-3009 USDC signing; [httpx] enables the async payment
