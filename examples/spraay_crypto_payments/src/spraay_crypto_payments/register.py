@@ -20,6 +20,7 @@ the function_groups section of a workflow config.yml.
 """
 
 import logging
+import os
 
 from pydantic import Field
 
@@ -373,20 +374,37 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
 
         return await client.get("/api/v1/robots/list", params)
 
-    # Register all tools with the function group
+    # Paid tools move real USDC, so they are only exposed when an EVM signing
+    # key is configured. NAT's per-function ``filter_fn`` is the idiomatic hook
+    # for conditional membership: the function is added to the group, but the
+    # group filters it out of every accessor unless the predicate passes. Here
+    # the predicate is a constant captured at build time (EVM_PRIVATE_KEY set),
+    # so paid tools simply do not appear in the agent's toolset without a key.
+    paid_tools_enabled = bool(os.environ.get("EVM_PRIVATE_KEY"))
+
+    async def _requires_evm_key(_name: str) -> bool:
+        return paid_tools_enabled
+
+    if not paid_tools_enabled:
+        logger.info(
+            "EVM_PRIVATE_KEY not set; registering free Spraay tools only. Paid "
+            "tools (balance, batch_send, escrow_create, rtp_discover) are "
+            "skipped. Set EVM_PRIVATE_KEY to enable them.")
+
+    # Free info & discovery tools (always registered).
     group.add_function("health", health, description=health.__doc__)
     group.add_function("routes", routes, description=routes.__doc__)
     group.add_function("chains", chains, description=chains.__doc__)
     group.add_function("price", price, description=price.__doc__)
 
-    # Batch payment tools (lead with these - batch_validate and batch_estimate are FREE)
+    # Free batch preview tools (always registered - runnable in CI without funds).
     group.add_function("batch_validate", batch_validate, description=batch_validate.__doc__)
     group.add_function("batch_estimate", batch_estimate, description=batch_estimate.__doc__)
-    group.add_function("batch_send", batch_send, description=batch_send.__doc__)
 
-    # Paid tools (dry-run by default)
-    group.add_function("balance", balance, description=balance.__doc__)
-    group.add_function("escrow_create", escrow_create, description=escrow_create.__doc__)
-    group.add_function("rtp_discover", rtp_discover, description=rtp_discover.__doc__)
+    # Paid tools (registered only when EVM_PRIVATE_KEY is set).
+    group.add_function("balance", balance, description=balance.__doc__, filter_fn=_requires_evm_key)
+    group.add_function("batch_send", batch_send, description=batch_send.__doc__, filter_fn=_requires_evm_key)
+    group.add_function("escrow_create", escrow_create, description=escrow_create.__doc__, filter_fn=_requires_evm_key)
+    group.add_function("rtp_discover", rtp_discover, description=rtp_discover.__doc__, filter_fn=_requires_evm_key)
 
     yield group

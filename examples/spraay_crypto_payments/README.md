@@ -39,7 +39,8 @@ services using USDC micropayments over HTTP. When an agent calls a paid
 endpoint, the server returns HTTP 402 (Payment Required) with payment details.
 The agent can optionally sign a USDC transaction, resend the request with
 payment proof, and the server executes the operation. Without payment
-credentials, the agent receives a payment quote (dry-run mode).
+credentials, an x402 client receives a payment quote instead of the result
+(dry-run mode).
 
 ### Supported Chains
 
@@ -64,7 +65,11 @@ gateway client.
 | `spraay__batch_validate` | `POST /free/validate-batch` | Validate batch payment recipients |
 | `spraay__batch_estimate` | `GET /free/estimate-batch` | Estimate gas + fees for batch payment |
 
-### Paid Tools (x402 Protocol, Dry-Run by Default)
+### Paid Tools (x402 Protocol — Require `EVM_PRIVATE_KEY`)
+
+The paid tools register **only when `EVM_PRIVATE_KEY` is set**. Without the key
+they are not exposed to the agent at all, so this example is safe to run in CI
+with no wallet.
 
 | Tool | Endpoint | Price | Description |
 |------|----------|-------|-------------|
@@ -73,20 +78,24 @@ gateway client.
 | `spraay__escrow_create` | `POST /api/v1/escrow/create` | $0.10 | Create escrow contract with conditions |
 | `spraay__rtp_discover` | `GET /api/v1/robots/list` | $0.005 | Discover RTP robots by capability/chain/price |
 
-**Paid Tool Modes:**
-- **Dry-run (default):** Without `EVM_PRIVATE_KEY` set, paid tools return
-  structured payment quotes showing the required USDC amount, network, and
-  payment address. No wallet, no signing, no funds move. Safe for CI and demos.
-- **Live mode:** With `EVM_PRIVATE_KEY` set, paid requests are routed through
-  the [x402 SDK](https://pypi.org/project/x402/) payment transport. When the
-  gateway returns `402 Payment Required` (x402Version 2), the SDK signs an
-  EIP-3009 `TransferWithAuthorization` for USDC on Base (the `exact` scheme),
-  attaches it as the `X-PAYMENT` header, and retries. The gateway's facilitator
-  settles the USDC transfer on-chain and returns the real API result together
-  with an `X-PAYMENT-RESPONSE` header containing the settlement transaction
-  hash (surfaced in the tool output under `settlement`). **This moves real
-  funds.** `spraay__batch_send` in live mode broadcasts a real batch payment to
-  every recipient in the list.
+**Tool registration modes:**
+- **Free-only (default):** Without `EVM_PRIVATE_KEY` set, only the six free
+  tools above register. The paid tools are not exposed to the agent, so no
+  wallet, signing, or funds are involved — safe for CI and demos. To preview a
+  batch payment with zero funds, use the free `batch_validate` and
+  `batch_estimate` tools.
+- **Full set (with key):** With `EVM_PRIVATE_KEY` set, the four paid tools
+  register alongside the free ones. Paid requests are then routed through the
+  [x402 SDK](https://pypi.org/project/x402/) payment transport: when the gateway
+  returns `402 Payment Required` (x402Version 2), the SDK signs an EIP-3009
+  `TransferWithAuthorization` for USDC on Base (the `exact` scheme), attaches it
+  as the `X-PAYMENT` header, and retries. The gateway's facilitator settles the
+  USDC transfer on-chain and returns the real API result together with an
+  `X-PAYMENT-RESPONSE` header containing the settlement transaction hash
+  (surfaced in the tool output under `settlement`). **This moves real funds** —
+  `spraay__batch_send` broadcasts a real batch payment to every recipient in the
+  list. Preview with the free `batch_validate` / `batch_estimate` tools and test
+  with a single small recipient first.
 
 ## Prerequisites
 
@@ -115,7 +124,8 @@ export NVIDIA_API_KEY=<your-nvidia-api-key>
 export SPRAAY_GATEWAY_URL=https://gateway.spraay.app  # optional, this is the default
 ```
 
-4. (Optional) For live execution of paid tools, set your EVM private key:
+4. (Optional) To register and live-execute the paid tools, set your EVM private
+   key. Without it, only the six free tools register:
 
 ```bash
 export EVM_PRIVATE_KEY=<your-private-key>  # NEVER commit or share this
@@ -123,8 +133,8 @@ export EVM_PRIVATE_KEY=<your-private-key>  # NEVER commit or share this
 
 **Security note:** The `EVM_PRIVATE_KEY` is only used to sign x402 payment
 headers for USDC transfers on Base. It is never logged, echoed, or sent to any
-service other than the blockchain. If not set, paid tools operate in dry-run
-mode and return payment quotes.
+service other than the blockchain. If not set, the paid tools are not
+registered and only the free tools are available.
 
 ## Sample Runs
 
@@ -239,34 +249,7 @@ nat run \
 }
 ```
 
-### 4. Dry-Run Paid Tool: Batch Send Payment Quote
-
-Without `EVM_PRIVATE_KEY`, `batch_send` returns the x402 payment quote:
-
-```bash
-nat run \
-  --config_file configs/config.yml \
-  --input "Send 1 USDC on base to 0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8"
-```
-
-**Output:**
-
-```json
-{
-  "mode": "dry_run",
-  "endpoint": "/api/v1/batch/execute",
-  "payment_required": {
-    "price": "$0.020",
-    "amount_usdc_raw": 20000,
-    "asset": "USDC",
-    "network": "eip155:8453",
-    "pay_to": "0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8"
-  },
-  "note": "Set EVM_PRIVATE_KEY environment variable to execute for real."
-}
-```
-
-### 5. (Optional) Live Mode — Moves Real Funds
+### 4. (Optional) Live Mode — Moves Real Funds
 
 > ⚠️ **Live mode moves real money.** With `EVM_PRIVATE_KEY` set, `batch_send`
 > broadcasts a real USDC batch payment to every recipient, and the x402 gateway
@@ -311,26 +294,16 @@ tool returns a structured `mode: live` error explaining why — no partial charg
 
 #### Deterministic first live test (no agent, no LLM)
 
-For the most predictable first live run, use the standalone smoke script. It
-drives `batch_send` directly through the client — no ReAct agent, no
+For the most predictable first live run, use the standalone `batch_send` smoke
+script, which lives in the Spraay gateway repo:
+[`scripts/live_batch_send_smoke.py`](https://github.com/plagtech/spraay-x402-gateway/blob/main/scripts/live_batch_send_smoke.py).
+It drives `batch_send` directly through the client — no ReAct agent, no
 `NVIDIA_API_KEY`, and exactly one payment attempt — and requires you to type
-`yes` before moving funds. Run it first with no key (dry-run quote), then with a
-funded key:
-
-```bash
-# 1. Dry-run: prints the x402 quote, no funds move.
-python scripts/live_batch_send_smoke.py
-
-# 2. Live: signs + settles the $0.02 fee and submits the batch (REAL funds).
-export EVM_PRIVATE_KEY=0x...   # funded Base wallet
-python scripts/live_batch_send_smoke.py \
-  --to 0xAd62f03C7514bb8c51f1eA70C2b75C37404695c8 --amount 0.01
-```
-
-The script derives `sender` from your key automatically, prints a summary,
-prompts for confirmation (skip with `--yes`), and reports the settlement
-transaction hash. See `--help` for multi-recipient (`--to addr:amount`), token,
-chain, and gateway options.
+`yes` before moving funds. It derives `sender` from your key automatically,
+prints a summary, prompts for confirmation (skip with `--yes`), and reports the
+settlement transaction hash. Run it first with no key (dry-run quote), then with
+a funded `EVM_PRIVATE_KEY`. See its `--help` for multi-recipient
+(`--to addr:amount`), token, chain, and gateway options.
 
 #### Verified live run
 
@@ -441,7 +414,6 @@ Spraay x402 Gateway (gateway.spraay.app)
 | `src/spraay_crypto_payments/register.py` | Tool registration with `@register_function_group` |
 | `src/spraay_crypto_payments/spraay_client.py` | Async HTTP client with x402 support |
 | `src/spraay_crypto_payments/__init__.py` | Package init |
-| `scripts/live_batch_send_smoke.py` | Standalone batch_send smoke test (dry-run + live) |
 | `pyproject.toml` | Project dependencies and NAT entry points |
 
 ## Related Examples
