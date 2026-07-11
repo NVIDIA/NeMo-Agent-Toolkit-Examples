@@ -77,9 +77,24 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
             query: Unused; the endpoint is fixed. Provided for agent compatibility.
 
         Returns:
-            JSON string with the list of gateway routes.
+            JSON string with a compact summary of gateway routes (x402 discovery manifest).
         """
-        return await client.get("/v1/routes")
+        import json as json_mod
+        result = await client.get("/.well-known/x402.json")
+        try:
+            # Return compact summary to keep agent context small
+            data = json_mod.loads(result)
+            resources = data.get("resources", [])
+            summary = {
+                "total_resources": len(resources),
+                "supported_chains": data.get("supportedChains", []),
+                "network": data.get("network"),
+                "sample_resources": resources[:10],  # First 10
+                "note": f"Showing 10 of {len(resources)} resources. Full manifest at /.well-known/x402.json",
+            }
+            return json_mod.dumps(summary, indent=2)
+        except Exception:
+            return result  # Return raw if parsing fails
 
     async def chains(query: str = "") -> str:
         """List all supported blockchains on the Spraay gateway.
@@ -90,14 +105,16 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
             query: Unused; the endpoint is fixed. Provided for agent compatibility.
 
         Returns:
-            JSON string with the list of supported chains.
+            JSON string with the list of supported chains and their status.
         """
-        return await client.get("/v1/chains")
+        return await client.get("/free/chain-status")
 
     async def balance(query: str) -> str:
         """Check the token balance of a wallet address on a specific blockchain.
 
-        This is a free query - no x402 USDC payment is required.
+        This is a PAID endpoint ($0.005 via x402).
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
+        - With EVM_PRIVATE_KEY: executes payment and returns balance
 
         Args:
             query: A string containing the wallet address and optionally
@@ -106,7 +123,7 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
                 '0xAd62...c8' (defaults to Base/USDC)
 
         Returns:
-            JSON string with the wallet balance.
+            JSON string with the wallet balance or payment quote.
         """
         parts = query.strip().split()
         address = parts[0] if parts else query.strip()
@@ -124,7 +141,7 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
                 token = parts[idx + 1].upper()
 
         return await client.get(
-            "/v1/balance",
+            "/api/v1/balances",
             params={
                 "address": address, "chain": chain, "token": token
             },
@@ -136,35 +153,227 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         This is a free query - no x402 USDC payment is required.
 
         Args:
-            query: A string containing the token symbol and optionally
-                the chain, e.g.:
-                'ETH on base'
-                'USDC' (defaults to Base)
+            query: A string containing the token symbol(s), e.g.:
+                'ETH'
+                'ETH,USDC,SOL' (comma-separated for multiple tokens)
 
         Returns:
-            JSON string with the current token price.
+            JSON string with the current token price(s).
         """
-        parts = query.strip().split()
-        token = parts[0].upper() if parts else "ETH"
-        chain = "base"
-
-        lower_parts = [p.lower() for p in parts]
-        if "on" in lower_parts:
-            idx = lower_parts.index("on")
-            if idx + 1 < len(parts):
-                chain = parts[idx + 1].lower()
+        # Parse tokens from query (comma-separated or space-separated)
+        tokens = query.strip().replace(" ", ",").upper()
+        if not tokens:
+            tokens = "ETH,USDC"
 
         return await client.get(
-            "/v1/price",
-            params={
-                "token": token, "chain": chain
-            },
+            "/free/prices",
+            params={"tokens": tokens},
         )
 
+    async def batch_validate(query: str) -> str:
+        """Validate a batch payment recipient list before sending.
+
+        This is a FREE endpoint - no x402 payment required. Use this to check
+        recipient addresses, amounts, and batch structure before executing.
+
+        Args:
+            query: JSON string or natural language describing the batch, e.g.:
+                '{"recipients":[{"to":"0xAd62...","amount":"1.5"}],"token":"USDC","chain":"base"}'
+                'validate sending USDC on base to 0xAd62...:1.5, 0xDef...:2.0'
+
+        Returns:
+            JSON string with validation results (valid, errors, warnings, summary).
+        """
+        import json as json_mod
+        try:
+            # Try parsing as JSON first
+            data = json_mod.loads(query)
+        except Exception:
+            # Parse natural language: "validate sending USDC on base to addr1:amt1, addr2:amt2"
+            parts = query.lower().replace("validate", "").replace("sending", "").strip().split()
+            token = "USDC"
+            chain = "base"
+            recipients = []
+
+            # Extract token and chain
+            for i, part in enumerate(parts):
+                if part.upper() in ["USDC", "ETH", "DAI"]:
+                    token = part.upper()
+                elif part == "on" and i + 1 < len(parts):
+                    chain = parts[i + 1]
+                elif part == "to" and i + 1 < len(parts):
+                    # Parse "addr1:amt1, addr2:amt2"
+                    recipient_str = " ".join(parts[i + 1:])
+                    for rec in recipient_str.split(","):
+                        if ":" in rec:
+                            addr, amt = rec.strip().split(":")
+                            recipients.append({"to": addr.strip(), "amount": amt.strip()})
+                    break
+
+            data = {"recipients": recipients, "token": token, "chain": chain}
+
+        return await client.post("/free/validate-batch", data)
+
+    async def batch_estimate(query: str) -> str:
+        """Estimate gas and total cost for a batch payment before executing.
+
+        This is a FREE endpoint - no x402 payment required. Returns protocol
+        fee (0.3%), estimated gas in USD, and total cost breakdown.
+
+        Args:
+            query: Query string with recipient count, chain, and token, e.g.:
+                'recipients=3&chain=base&token=USDC'
+                'estimate 5 recipients on base with USDC'
+
+        Returns:
+            JSON string with cost estimate (gas, fees, total).
+        """
+        # Parse query into parameters
+        params = {}
+        if "=" in query and "&" in query:
+            # Direct parameter format
+            for param in query.split("&"):
+                if "=" in param:
+                    key, val = param.split("=", 1)
+                    params[key.strip()] = val.strip()
+        else:
+            # Natural language: "estimate 5 recipients on base with USDC"
+            parts = query.split()
+            params = {"chain": "base", "token": "USDC"}
+            for i, part in enumerate(parts):
+                if part.isdigit():
+                    params["recipients"] = part
+                elif part == "on" and i + 1 < len(parts):
+                    params["chain"] = parts[i + 1]
+                elif part.upper() in ["USDC", "ETH", "DAI"]:
+                    params["token"] = part.upper()
+
+        return await client.get("/free/estimate-batch", params)
+
+    async def batch_send(query: str) -> str:
+        """Execute a batch payment to up to 200 recipients in one atomic transaction.
+
+        This is a PAID endpoint ($0.02 via x402). Implements BPA 1.0 spec.
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
+        - With EVM_PRIVATE_KEY: executes payment and returns transaction hash
+
+        Supports Base, Ethereum, Solana, and other chains. Protocol fee: 0.3%.
+
+        Args:
+            query: JSON or natural language describing the batch, e.g.:
+                'send USDC on base to 0xAd62...:1.5, 0xDef...:2.0'
+                '{"recipients":[{"to":"0x...","amount":"1.5"}],"token":"USDC","chain":"base","sender":"0x..."}'
+
+        Returns:
+            JSON string with transaction result or payment quote.
+        """
+        import json as json_mod
+        try:
+            # Try parsing as JSON first
+            data = json_mod.loads(query)
+        except Exception:
+            # Parse natural language: "send USDC on base to addr1:amt1, addr2:amt2"
+            parts = query.lower().replace("send", "").strip().split()
+            token = "USDC"
+            chain = "base"
+            recipients = []
+
+            # Extract token and chain
+            for i, part in enumerate(parts):
+                if part.upper() in ["USDC", "ETH", "DAI", "SOL"]:
+                    token = part.upper()
+                elif part == "on" and i + 1 < len(parts):
+                    chain = parts[i + 1]
+                elif part == "to" and i + 1 < len(parts):
+                    # Parse "addr1:amt1, addr2:amt2"
+                    recipient_str = " ".join(parts[i + 1:])
+                    for rec in recipient_str.split(","):
+                        if ":" in rec:
+                            addr, amt = rec.strip().split(":")
+                            recipients.append({"to": addr.strip(), "amount": amt.strip()})
+                    break
+
+            data = {"recipients": recipients, "token": token, "chain": chain}
+
+        # Add sender field if not present (required by BPA 1.0 spec)
+        if "sender" not in data:
+            data["sender"] = "0x0000000000000000000000000000000000000000"  # Placeholder for dry-run
+
+        return await client.post("/api/v1/batch/execute", data)
+
+    async def escrow_create(query: str) -> str:
+        """Create an escrow contract for conditional payment release.
+
+        This is a PAID endpoint ($0.10 via x402).
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
+        - With EVM_PRIVATE_KEY: executes payment and creates escrow
+
+        Args:
+            query: JSON describing the escrow, e.g.:
+                '{"amount":"100","token":"USDC","chain":"base","beneficiary":"0x...","condition":"api_verified"}'
+
+        Returns:
+            JSON string with escrow contract details or payment quote.
+        """
+        import json as json_mod
+        try:
+            data = json_mod.loads(query)
+        except Exception:
+            return json_mod.dumps({"error": "Invalid escrow format. Expected JSON with amount, token, chain, beneficiary, condition."})
+
+        return await client.post("/api/v1/escrow/create", data)
+
+    async def rtp_discover(query: str) -> str:
+        """Discover available RTP (Robotic Task Protocol) robots.
+
+        This is a PAID endpoint ($0.005 via x402). Filter by capability,
+        chain, price range, or status.
+        - Without EVM_PRIVATE_KEY: returns payment quote (dry-run)
+        - With EVM_PRIVATE_KEY: executes payment and returns robot list
+
+        Args:
+            query: Filter query, e.g.:
+                'capability=pick&chain=base'
+                'find robots with pick capability under $5'
+
+        Returns:
+            JSON string with available robots or payment quote.
+        """
+        # Parse query into parameters
+        params = {}
+        if "=" in query and "&" in query:
+            # Direct parameter format
+            for param in query.split("&"):
+                if "=" in param:
+                    key, val = param.split("=", 1)
+                    params[key.strip()] = val.strip()
+        else:
+            # Natural language parsing
+            parts = query.lower().split()
+            for i, part in enumerate(parts):
+                if "pick" in part or "place" in part:
+                    params["capability"] = part
+                elif part == "under" and i + 1 < len(parts):
+                    # Extract price like "$5" or "5"
+                    price_str = parts[i + 1].replace("$", "")
+                    params["max_price"] = price_str
+
+        return await client.get("/api/v1/robots/list", params)
+
+    # Register all tools with the function group
     group.add_function("health", health, description=health.__doc__)
     group.add_function("routes", routes, description=routes.__doc__)
     group.add_function("chains", chains, description=chains.__doc__)
-    group.add_function("balance", balance, description=balance.__doc__)
     group.add_function("price", price, description=price.__doc__)
+
+    # Batch payment tools (lead with these - batch_validate and batch_estimate are FREE)
+    group.add_function("batch_validate", batch_validate, description=batch_validate.__doc__)
+    group.add_function("batch_estimate", batch_estimate, description=batch_estimate.__doc__)
+    group.add_function("batch_send", batch_send, description=batch_send.__doc__)
+
+    # Paid tools (dry-run by default)
+    group.add_function("balance", balance, description=balance.__doc__)
+    group.add_function("escrow_create", escrow_create, description=escrow_create.__doc__)
+    group.add_function("rtp_discover", rtp_discover, description=rtp_discover.__doc__)
 
     yield group
