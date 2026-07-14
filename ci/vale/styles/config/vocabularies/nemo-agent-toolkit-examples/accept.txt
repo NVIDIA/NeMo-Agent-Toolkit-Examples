@@ -138,6 +138,7 @@ seaborn
 [Ss]ubgraph(s?)
 [Ss]ubpackage(s?)
 [Ss]ubword(s?)
+[Ss]treamable
 [Ss]uperset(s?)
 Tavily
 [Tt]eardown
@@ -148,6 +149,7 @@ triages
 [Uu]nencrypted
 [Uu]nittest(s?)
 [Uu]nprocessable
+[Uu]ntrusted
 [Uu]ploader
 [Uu]psert
 uv
