@@ -311,7 +311,7 @@ a funded `EVM_PRIVATE_KEY`. See its `--help` for multi-recipient
 
 A real run of this smoke test against the production gateway
 (`gateway.spraay.app`) — the flat batch payload parsed correctly and the x402
-gateway fee settled on **Base mainnet** (`eip155:8453`):
+gateway fee settled on the Base production network (`eip155:8453`):
 
 ```text
 ================================================================
@@ -369,11 +369,12 @@ Submitting batch to https://gateway.spraay.app/api/v1/batch/execute ...
 }
 ```
 
-Verify on-chain:
-<https://basescan.org/tx/0x4a3fdb079beb6b87ca0798b4e6be98496f45fffaed8ed0227987e0c1af54fdd7>
+Settlement transaction hash (verify on-chain at `basescan.org`):
+`0x4a3fdb079beb6b87ca0798b4e6be98496f45fffaed8ed0227987e0c1af54fdd7`
+(Base, `eip155:8453`)
 
 The `$0.02` fee is the x402 charge for `/api/v1/batch/execute`; the batch itself
-is returned as non-custodial calldata for the sender to broadcast.
+is returned as non-custodial `calldata` for the sender to broadcast.
 
 ## Architecture
 

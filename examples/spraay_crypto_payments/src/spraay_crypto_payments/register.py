@@ -332,7 +332,8 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         try:
             data = json_mod.loads(query)
         except Exception:
-            return json_mod.dumps({"error": "Invalid escrow format. Expected JSON with amount, token, chain, beneficiary, condition."})
+            return json_mod.dumps(
+                {"error": "Invalid escrow format. Expected JSON with amount, token, chain, beneficiary, condition."})
 
         return await client.post("/api/v1/escrow/create", data)
 
@@ -386,10 +387,9 @@ async def spraay(config: SpraayToolsGroupConfig, _builder: Builder):
         return paid_tools_enabled
 
     if not paid_tools_enabled:
-        logger.info(
-            "EVM_PRIVATE_KEY not set; registering free Spraay tools only. Paid "
-            "tools (balance, batch_send, escrow_create, rtp_discover) are "
-            "skipped. Set EVM_PRIVATE_KEY to enable them.")
+        logger.info("EVM_PRIVATE_KEY not set; registering free Spraay tools only. Paid "
+                    "tools (balance, batch_send, escrow_create, rtp_discover) are "
+                    "skipped. Set EVM_PRIVATE_KEY to enable them.")
 
     # Free info & discovery tools (always registered).
     group.add_function("health", health, description=health.__doc__)

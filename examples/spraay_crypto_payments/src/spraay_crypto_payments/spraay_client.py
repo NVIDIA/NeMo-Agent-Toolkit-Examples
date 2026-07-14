@@ -96,7 +96,7 @@ def to_batch_execute_payload(data: dict) -> dict:
 
     token = str(data.get("token", "USDC")).upper()
     decimals = _TOKEN_DECIMALS.get(token, _DEFAULT_TOKEN_DECIMALS)
-    scale = Decimal(10) ** decimals
+    scale = Decimal(10)**decimals
 
     addresses: list[str] = []
     amounts: list[str] = []
@@ -201,10 +201,8 @@ class SpraayClient:
             from x402.mechanisms.evm.exact import register_exact_evm_client
             from x402.mechanisms.evm.signers import EthAccountSigner
         except ImportError as e:
-            raise RuntimeError(
-                "Live mode requires the x402 SDK with EVM + httpx extras. "
-                "Install with: uv pip install -e . (pulls x402[evm,httpx])."
-            ) from e
+            raise RuntimeError("Live mode requires the x402 SDK with EVM + httpx extras. "
+                               "Install with: uv pip install -e . (pulls x402[evm,httpx]).") from e
 
         key = self.private_key or ""
         if not key.startswith("0x"):
@@ -272,7 +270,8 @@ class SpraayClient:
         """
         try:
             x402_client = self._get_x402_client()
-            from x402.http.clients.httpx import PaymentError, wrapHttpxWithPayment
+            from x402.http.clients.httpx import PaymentError
+            from x402.http.clients.httpx import wrapHttpxWithPayment
         except RuntimeError as e:
             return json.dumps({"mode": "live", "error": str(e), "path": path}, indent=2)
         except ImportError as e:
@@ -280,7 +279,8 @@ class SpraayClient:
                 "mode": "live",
                 "error": f"Live mode dependencies missing: {e}",
                 "path": path,
-            }, indent=2)
+            },
+                              indent=2)
 
         url = f"{self.gateway_url}{path}"
         headers = {"Content-Type": "application/json"}
@@ -295,16 +295,16 @@ class SpraayClient:
                     # The payment was signed and submitted but the gateway did
                     # not accept it. Most common cause: the paying wallet holds
                     # insufficient USDC, or the payment window expired.
-                    return json.dumps({
-                        "mode": "live",
-                        "error": (
-                            "Payment was signed and submitted but the gateway rejected it "
-                            "(HTTP 402). Check that the paying wallet holds enough USDC on the "
-                            "target chain to cover the payment plus the transfer amount."
-                        ),
-                        "gateway_response": self._safe_json(response),
-                        "path": path,
-                    }, indent=2)
+                    return json.dumps(
+                        {
+                            "mode": "live",
+                            "error": ("Payment was signed and submitted but the gateway rejected it "
+                                      "(HTTP 402). Check that the paying wallet holds enough USDC on the "
+                                      "target chain to cover the payment plus the transfer amount."),
+                            "gateway_response": self._safe_json(response),
+                            "path": path,
+                        },
+                        indent=2)
 
                 response.raise_for_status()
                 settlement = self._decode_payment_response(response)
@@ -318,22 +318,26 @@ class SpraayClient:
                     "mode": "live",
                     "result": self._safe_json(response),
                     "settlement": settlement,
-                }, indent=2)
+                },
+                                  indent=2)
         except PaymentError as e:
             logger.error("x402 payment failed for %s", path)
             return json.dumps({
                 "mode": "live",
                 "error": f"x402 payment execution failed: {e}",
                 "path": path,
-            }, indent=2)
+            },
+                              indent=2)
         except httpx.HTTPStatusError as e:
             logger.error("Spraay gateway HTTP error: %s %s", e.response.status_code, path)
-            return json.dumps({
-                "mode": "live",
-                "error": f"HTTP {e.response.status_code}",
-                "response_body": self._safe_json(e.response),
-                "path": path,
-            }, indent=2)
+            return json.dumps(
+                {
+                    "mode": "live",
+                    "error": f"HTTP {e.response.status_code}",
+                    "response_body": self._safe_json(e.response),
+                    "path": path,
+                },
+                indent=2)
         except Exception as e:
             logger.error("Live x402 request failed for %s", path)
             return json.dumps({"mode": "live", "error": str(e), "path": path}, indent=2)
