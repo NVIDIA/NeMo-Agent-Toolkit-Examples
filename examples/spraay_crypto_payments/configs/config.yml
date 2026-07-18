@@ -18,10 +18,20 @@
 #
 # This agent uses the Spraay x402 gateway to execute cryptocurrency
 # payments across 15 blockchains via USDC micropayments.
+#
+# FREE tools (no payment required):
+#   - health, routes, chains, price
+#   - batch_validate, batch_estimate (batch payment preview - runnable in CI!)
+#
+# PAID tools (x402 protocol):
+#   - balance ($0.005), batch_send ($0.02), escrow_create ($0.10), rtp_discover ($0.005)
+#   - Registered ONLY when EVM_PRIVATE_KEY is set. With the key, calls execute
+#     live and move real USDC (preview first with the free batch_validate /
+#     batch_estimate tools).
+#   - Without EVM_PRIVATE_KEY: only the free tools are registered (safe for CI/demos)
 
 function_groups:
   # All Spraay gateway tools share a single client (one gateway connection).
-  # Free query tools - no x402 payment required.
   spraay:
     _type: spraay
     gateway_url: ${SPRAAY_GATEWAY_URL:-https://gateway.spraay.app}
@@ -34,12 +44,9 @@ llms:
 
 workflow:
   _type: react_agent
-  tool_names:
-    - spraay__health
-    - spraay__routes
-    - spraay__chains
-    - spraay__balance
-    - spraay__price
+  # Reference the whole spraay function group. The group registers its free
+  # tools always, and its paid tools only when EVM_PRIVATE_KEY is set.
+  tool_names: [spraay]
   llm_name: nim_llm
   verbose: true
   parse_agent_response_max_retries: 3
