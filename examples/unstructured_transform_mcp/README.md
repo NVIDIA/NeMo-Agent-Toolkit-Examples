@@ -21,7 +21,7 @@ limitations under the License.
 
 This example demonstrates how the NVIDIA NeMo Agent Toolkit connects to a third-party remote MCP server that is protected by static bearer-token authentication: the hosted [Unstructured Transform](https://transform.unstructured.io/get-started) service, which converts documents (PDF, DOCX, PPTX, XLSX, HTML, images, and 40+ other formats) into clean Markdown that agents can reason over.
 
-It also demonstrates a useful composition pattern: the remote MCP server exposes an asynchronous, multi-step protocol, and this example wraps that protocol in a single deterministic custom function so the agent only needs one reliable tool call.
+It also demonstrates a useful composition pattern: the remote MCP server exposes an asynchronous, multi-step protocol, and this example wraps that protocol in deterministic custom functions so the agent only needs one reliable tool call. Two functions are registered, one that converts a document to Markdown and one that extracts named fields from it as JSON.
 
 This example is hosted in the examples repository because it requires an Unstructured API key and depends on an external MCP server whose data, schema, availability, and responses are not controlled by the toolkit. It is a reference integration, and it targets NeMo Agent Toolkit 1.8.
 
@@ -30,16 +30,22 @@ This example is hosted in the examples repository because it requires an Unstruc
 - **Bearer-token MCP authentication:** Uses the `api_key` authentication provider with `auth_scheme: Bearer` to authenticate against a remote MCP server with a static API key supplied through an environment variable. The other MCP examples in the NeMo Agent Toolkit cover unauthenticated servers and OAuth2 flows; this example covers the common "API key in a header" case.
 - **Remote MCP client over streamable HTTP:** Declares the Transform server as an `mcp_client` function group using the `streamable-http` transport.
 - **Deterministic composition of MCP tools:** A custom function (`transform_document`) resolves the four Transform MCP tools from the function group and orchestrates the upload, transform, poll, and download flow in plain Python, exposing one dependable tool to the ReAct agent.
+- **Chaining two async jobs:** A second function (`extract_structured_data`) shows the same pattern over a dependent pair of jobs, parsing a document and then extracting named fields from the parse output as JSON.
 - **Document parsing for agents:** Turns binary documents into Markdown the LLM can summarize, query, and extract from.
 
 ## How It Works
 
-The Unstructured Transform MCP server exposes an asynchronous job protocol as four tools:
+The Unstructured Transform MCP server exposes an asynchronous job protocol. Four tools cover parsing:
 
 1. `request_file_upload_url`: Returns a pre-signed upload URL and a file reference for a local file.
 2. `start_transform_job`: Starts a transform job for one or more file references (or public HTTP(S) URLs) and returns a job ID.
 3. `check_job_status`: Reports whether the job is `SCHEDULED`, `IN_PROGRESS`, or `COMPLETED` (any other state means the job failed, and the function reports it as an error).
 4. `get_job_results`: Returns a pre-signed download URL for the Markdown output of each transformed file.
+
+Two more cover structured data extraction, described in [Structured Data Extraction](#structured-data-extraction) below:
+
+5. `suggest_extraction_schema_for_file`: Drafts a JSON Schema from one parsed document.
+6. `start_extraction_job`: Runs an extraction against a JSON Schema and returns a job ID. Status and results come from the same two tools as a parse.
 
 Two steps of the protocol are plain HTTP transfers rather than MCP calls: uploading the raw document bytes to the pre-signed upload URL and downloading the Markdown from the pre-signed download URL. An agent cannot perform those byte transfers with MCP tools alone, and letting an LLM drive the polling loop is slow and unreliable. The `transform_document` function in `src/nat_unstructured_transform_mcp/register.py` therefore performs the whole sequence deterministically:
 
@@ -56,7 +62,30 @@ agent -> transform_document(source)
 The function accepts either a local file path or a public HTTP(S) URL (public URLs are passed directly to `start_transform_job`, skipping the upload). Transforms take from a few seconds up to several minutes depending on page count, and the maximum file size is 50 MB. Each `transform_document` call processes a single document, and the example always requests the default Markdown output; the Transform service also supports element JSON, HTML, and plain-text output, which would require extending `transform_document`.
 
 > [!IMPORTANT]
-> Trust boundary: for a local path, `transform_document` reads that file and uploads its contents to the hosted Transform service. Because the path comes from the agent, a crafted prompt could point it at a sensitive file (for example a private key or a credentials file) and cause that file to leave the host. Run this example with documents and prompts you trust, and if you adapt it for untrusted input, restrict the accepted paths to a designated directory.
+> Trust boundary: for a local path, `transform_document` reads that file and uploads its contents to the hosted Transform service. Because the path comes from the agent, a crafted prompt could point it at a sensitive file (for example a private key or a credentials file) and cause that file to leave the host. Run this example with documents and prompts you trust, and if you adapt it for untrusted input, restrict the accepted paths to a designated directory. The same applies to `extract_structured_data`, which takes a path the same way.
+
+### Structured Data Extraction
+
+`extract_structured_data` returns named fields as JSON instead of the whole document as text, which is what you want for invoices, forms, and contracts. It shows the composition pattern over two *dependent* jobs, because the extractor reads the Element JSON a parse produces rather than a raw file:
+
+```text
+agent -> extract_structured_data(source, extraction_schema, guidance)
+           |-- request_file_upload_url (MCP)              # local files only
+           |-- PUT raw bytes to upload URL                # plain HTTP, no bearer token
+           |-- start_transform_job (MCP)                  # with a partition strategy
+           |-- check_job_status / get_job_results (MCP)   # polled; yields output_ref
+           |-- suggest_extraction_schema_for_file (MCP)   # only when no schema is given
+           |-- start_extraction_job (MCP)                 # consumes the output_ref
+           `-- check_job_status / get_job_results (MCP)   # polled; returns JSON inline
+```
+
+Three details of that flow are worth knowing if you adapt it:
+
+- **The `output_ref` is the handle, not the rendered output.** Each file entry in the results of a completed parse carries a durable `output_ref` alongside its `download_url`, and it is present whichever output format you render. The function passes that reference straight to the extractor and never downloads the Markdown, which saves a transfer of output nobody reads.
+- **Parse fidelity sets the quality ceiling.** The extractor can only surface what the parse captured, so the function picks the partition strategy from the input type: `vlm` for PDFs, images, and PowerPoint files, and `fast` for everything else, where the higher-fidelity strategies silently fall back anyway. If a result comes back sparse, re-parsing with `hi_res` plus the `image_description`, `generative_ocr`, and `table_to_html` enrichment steps is the documented next step.
+- **Results keep their provenance.** Each record wraps `extracted_data` with `filename`, `filetype`, `processed_date_utc`, and `source_file_uri`. The function returns the whole wrapper rather than the bare data, since that is what ties a record back to the document it came from.
+
+The schema is optional. Pass `extraction_schema` as a JSON Schema encoded in a JSON string to fix the output shape, or leave it out and the server drafts one from the document itself. `guidance` is free text that steers both the drafted schema and how fields are filled. The agent-facing argument is deliberately named `extraction_schema` rather than `schema`, because these parameter names become fields of a generated Pydantic model and `schema` shadows a `BaseModel` attribute.
 
 ## Prerequisites
 
@@ -130,6 +159,39 @@ The section headings of the transformed document are:
 - # References
 ```
 
+### Extract Structured Data
+
+Ask for named fields instead, and the agent picks `extract_structured_data`:
+
+```bash
+nat run --config_file examples/unstructured_transform_mcp/configs/config.yml \
+  --input "Extract each plant's name, light needs, watering instructions, and humidity level from https://docs.unstructured.io/img/pipelines/data-extractor/house-plant-care.png as JSON."
+```
+
+The agent parses the image, has the server draft a schema (no schema was supplied), runs the extraction, and returns one record per document:
+
+```text
+Workflow Result:
+[
+  {
+    "filename": "house-plant-care.png",
+    "filetype": "image/png",
+    "processed_date_utc": "2026-07-28T10:45:04.158141Z",
+    "source_file_uri": "u10d://output/<parse-job-id>_house-plant-care.json",
+    "extracted_data": {
+      "plants": [
+        {
+          "plant_name": "MONSTERA DELICIOSA",
+          "light_requirements": "Bright Indirect - Some direct",
+          "watering_instructions": "Water when 80% dry",
+          "humidity_level": "Low - Medium"
+        }
+      ]
+    }
+  }
+]
+```
+
 ## Configuration Details
 
 The complete configuration is in `configs/config.yml`. The MCP client and authentication sections are the interesting parts:
@@ -145,6 +207,8 @@ function_groups:
     include:
       - request_file_upload_url
       - start_transform_job
+      - suggest_extraction_schema_for_file
+      - start_extraction_job
       - check_job_status
       - get_job_results
 
@@ -157,8 +221,8 @@ authentication:
 
 - The `api_key` authentication provider attaches `Authorization: Bearer <UNSTRUCTURED_API_KEY>` to every request the MCP client makes, including the initial handshake.
 - `${UNSTRUCTURED_API_KEY}` is interpolated from the environment when the configuration is loaded. See [workflow configuration](https://github.com/NVIDIA/NeMo-Agent-Toolkit/blob/main/docs/source/build-workflows/workflow-configuration.md) for the interpolation syntax.
-- The `include` list documents the four tools the example depends on and fails fast if the server stops exposing any of them.
-- The `transform_document` function references the function group through its `mcp_group` setting, so the group does not need to appear in the workflow `tool_names` and the agent never sees the low-level tools.
+- The `include` list documents the six tools the example depends on and fails fast if the server stops exposing any of them.
+- Both functions reference the function group through their `mcp_group` setting, so the group does not need to appear in the workflow `tool_names` and the agent never sees the low-level tools.
 
 ### Alternative: Custom Headers
 
@@ -176,6 +240,8 @@ function_groups:
     include:
       - request_file_upload_url
       - start_transform_job
+      - suggest_extraction_schema_for_file
+      - start_extraction_job
       - check_job_status
       - get_job_results
 ```
@@ -193,6 +259,17 @@ The `transform_document` function accepts a few settings in the `functions` sect
 | `http_timeout_seconds` | `120.0` | Timeout for the raw upload and download requests. |
 | `max_file_size_bytes` | `52428800` | Maximum document size accepted by the Transform service (50 MB at the time of writing). |
 | `max_output_characters` | `50000` | Truncates the returned Markdown to protect the context window of the agent; a short truncation notice is appended. |
+
+`extract_structured_data` takes the same settings, except that it splits the job timeout in two because it runs a parse and then an extraction:
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `poll_interval_seconds` | `5.0` | Delay between job status checks. |
+| `parse_timeout_seconds` | `900.0` | Maximum time to wait for the parse that precedes the extraction. |
+| `extraction_timeout_seconds` | `600.0` | Maximum time to wait for the extraction job itself. |
+| `http_timeout_seconds` | `120.0` | Timeout for the raw upload request. |
+| `max_file_size_bytes` | `52428800` | Maximum document size accepted by the Transform service (50 MB at the time of writing). |
+| `max_output_characters` | `50000` | Truncates the returned JSON to protect the context window of the agent. Truncated output is no longer valid JSON, so the appended notice says so. |
 
 ## Testing
 
@@ -221,3 +298,4 @@ pytest --run_integration --run_slow examples/unstructured_transform_mcp/tests
 - [`kaggle_mcp`](../kaggle_mcp/README.md): Another remote MCP server reached over `streamable-http` with bearer-token authentication.
 - [MCP client documentation](https://github.com/NVIDIA/NeMo-Agent-Toolkit/blob/main/docs/source/build-workflows/mcp-client.md): All `mcp_client` configuration options.
 - [API authentication documentation](https://github.com/NVIDIA/NeMo-Agent-Toolkit/blob/main/docs/source/components/auth/api-authentication.md): Details of the `api_key` authentication provider.
+- [Unstructured structured data extraction](https://docs.unstructured.io/transform/sde): How the extractor works, and prompt patterns for it.
