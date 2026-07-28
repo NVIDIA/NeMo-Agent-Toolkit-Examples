@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # Maximum file size accepted by the Unstructured Transform service (50 MB).
 MAX_FILE_SIZE_BYTES = 52_428_800
 
-# Job states reported by the check_transform_status MCP tool which mean "keep waiting".
+# Job states reported by the check_job_status MCP tool which mean "keep waiting".
 _PENDING_JOB_STATES = frozenset({"SCHEDULED", "IN_PROGRESS"})
 _COMPLETED_JOB_STATE = "COMPLETED"
 
@@ -90,9 +90,9 @@ class TransformTools(typing.NamedTuple):
     """The four Unstructured Transform MCP tools, resolved from the function group."""
 
     request_file_upload_url: Function
-    transform_files: Function
-    check_transform_status: Function
-    get_transform_results: Function
+    start_transform_job: Function
+    check_job_status: Function
+    get_job_results: Function
 
 
 def resolve_tools(group_functions: dict[str, Function]) -> TransformTools:
@@ -169,7 +169,7 @@ async def _upload_source(tools: TransformTools, http_client: httpx.AsyncClient, 
                          max_file_size_bytes: int) -> str:
     """Return a file reference for the document, uploading local files first.
 
-    Public HTTP or HTTPS URLs are passed through unchanged because the transform_files
+    Public HTTP or HTTPS URLs are passed through unchanged because the start_transform_job
     MCP tool accepts them directly. Local files are uploaded to a pre-signed URL minted
     by the request_file_upload_url MCP tool.
     """
@@ -226,7 +226,7 @@ async def _wait_for_job(tools: TransformTools,
 
     while True:
         try:
-            status_payload = await _invoke_tool(tools.check_transform_status, job_id=job_id)
+            status_payload = await _invoke_tool(tools.check_job_status, job_id=job_id)
         except MCPToolError:
             raise
         except RuntimeError:
@@ -262,7 +262,7 @@ async def _fetch_results(tools: TransformTools,
     """Fetch the transform results, tolerating the brief window after the job reports completion.
 
     The status endpoint can report ``COMPLETED`` slightly before the results are
-    materialized, in which case get_transform_results returns a ``job_not_complete``
+    materialized, in which case get_job_results returns a ``job_not_complete``
     error. Retry within the overall transform deadline. Transport-level blips are retried
     the same way as in the status loop.
     """
@@ -271,7 +271,7 @@ async def _fetch_results(tools: TransformTools,
 
     while True:
         try:
-            return await _invoke_tool(tools.get_transform_results, job_id=job_id)
+            return await _invoke_tool(tools.get_job_results, job_id=job_id)
         except MCPToolError as e:
             if e.code != "job_not_complete":
                 raise
@@ -309,8 +309,8 @@ async def transform_source(tools: TransformTools, config: TransformDocumentConfi
     async with httpx.AsyncClient(timeout=config.http_timeout_seconds) as http_client:
         file_ref = await _upload_source(tools, http_client, source, config.max_file_size_bytes)
 
-        job = await _invoke_tool(tools.transform_files, file_refs=[file_ref])
-        job_id = _require(job, "job_id", "transform_files")
+        job = await _invoke_tool(tools.start_transform_job, file_refs=[file_ref])
+        job_id = _require(job, "job_id", "start_transform_job")
         logger.info("Started transform job %s for '%s'", job_id, source)
 
         # The status wait and the results fetch share one overall deadline.
@@ -331,7 +331,7 @@ async def transform_source(tools: TransformTools, config: TransformDocumentConfi
                                f"{str(first_file)[:300]!r}")
 
         # The download URL is pre-signed as well, so no bearer token is sent here either.
-        download = await http_client.get(_require(first_file, "download_url", "get_transform_results"))
+        download = await http_client.get(_require(first_file, "download_url", "get_job_results"))
         _check_http_response(download, "result download")
 
         return TransformResult(markdown=download.text,

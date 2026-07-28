@@ -33,9 +33,9 @@ function_groups:
     # The four tools that make up the asynchronous transform protocol.
     include:
       - request_file_upload_url
-      - transform_files
-      - check_transform_status
-      - get_transform_results
+      - start_transform_job
+      - check_job_status
+      - get_job_results
 
 authentication:
   unstructured_auth:

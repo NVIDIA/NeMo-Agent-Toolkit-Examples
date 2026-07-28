@@ -37,9 +37,9 @@ This example is hosted in the examples repository because it requires an Unstruc
 The Unstructured Transform MCP server exposes an asynchronous job protocol as four tools:
 
 1. `request_file_upload_url`: Returns a pre-signed upload URL and a file reference for a local file.
-2. `transform_files`: Starts a transform job for one or more file references (or public HTTP(S) URLs) and returns a job ID.
-3. `check_transform_status`: Reports whether the job is `SCHEDULED`, `IN_PROGRESS`, or `COMPLETED` (any other state means the job failed, and the function reports it as an error).
-4. `get_transform_results`: Returns a pre-signed download URL for the Markdown output of each transformed file.
+2. `start_transform_job`: Starts a transform job for one or more file references (or public HTTP(S) URLs) and returns a job ID.
+3. `check_job_status`: Reports whether the job is `SCHEDULED`, `IN_PROGRESS`, or `COMPLETED` (any other state means the job failed, and the function reports it as an error).
+4. `get_job_results`: Returns a pre-signed download URL for the Markdown output of each transformed file.
 
 Two steps of the protocol are plain HTTP transfers rather than MCP calls: uploading the raw document bytes to the pre-signed upload URL and downloading the Markdown from the pre-signed download URL. An agent cannot perform those byte transfers with MCP tools alone, and letting an LLM drive the polling loop is slow and unreliable. The `transform_document` function in `src/nat_unstructured_transform_mcp/register.py` therefore performs the whole sequence deterministically:
 
@@ -47,13 +47,13 @@ Two steps of the protocol are plain HTTP transfers rather than MCP calls: upload
 agent -> transform_document(source)
            |-- request_file_upload_url (MCP)      # local files only
            |-- PUT raw bytes to upload URL        # plain HTTP, no bearer token
-           |-- transform_files (MCP)
-           |-- check_transform_status (MCP)       # polled until COMPLETED
-           |-- get_transform_results (MCP)
+           |-- start_transform_job (MCP)
+           |-- check_job_status (MCP)             # polled until COMPLETED
+           |-- get_job_results (MCP)
            `-- GET Markdown from download URL     # plain HTTP, no bearer token
 ```
 
-The function accepts either a local file path or a public HTTP(S) URL (public URLs are passed directly to `transform_files`, skipping the upload). Transforms take from a few seconds up to several minutes depending on page count, and the maximum file size is 50 MB. Each `transform_document` call processes a single document, and the example always requests the default Markdown output; the Transform service also supports element JSON, HTML, and plain-text output, which would require extending `transform_document`.
+The function accepts either a local file path or a public HTTP(S) URL (public URLs are passed directly to `start_transform_job`, skipping the upload). Transforms take from a few seconds up to several minutes depending on page count, and the maximum file size is 50 MB. Each `transform_document` call processes a single document, and the example always requests the default Markdown output; the Transform service also supports element JSON, HTML, and plain-text output, which would require extending `transform_document`.
 
 > [!IMPORTANT]
 > Trust boundary: for a local path, `transform_document` reads that file and uploads its contents to the hosted Transform service. Because the path comes from the agent, a crafted prompt could point it at a sensitive file (for example a private key or a credentials file) and cause that file to leave the host. Run this example with documents and prompts you trust, and if you adapt it for untrusted input, restrict the accepted paths to a designated directory.
@@ -144,9 +144,9 @@ function_groups:
       auth_provider: unstructured_auth
     include:
       - request_file_upload_url
-      - transform_files
-      - check_transform_status
-      - get_transform_results
+      - start_transform_job
+      - check_job_status
+      - get_job_results
 
 authentication:
   unstructured_auth:
@@ -175,9 +175,9 @@ function_groups:
         Authorization: "Bearer ${UNSTRUCTURED_API_KEY}"
     include:
       - request_file_upload_url
-      - transform_files
-      - check_transform_status
-      - get_transform_results
+      - start_transform_job
+      - check_job_status
+      - get_job_results
 ```
 
 Keep the `include` list in this variant as well; it provides the same fail-fast contract check described above.
