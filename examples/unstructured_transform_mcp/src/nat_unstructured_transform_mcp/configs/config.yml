@@ -22,6 +22,16 @@ functions:
     poll_interval_seconds: 5.0
     transform_timeout_seconds: 900.0
 
+  # Structured data extraction. Extraction runs on the Element JSON a parse produces, so
+  # this function parses the document first and then chains a second asynchronous job onto
+  # it, which is why it carries its own two timeouts.
+  extract_structured_data:
+    _type: extract_structured_data
+    mcp_group: unstructured_transform
+    poll_interval_seconds: 5.0
+    parse_timeout_seconds: 900.0
+    extraction_timeout_seconds: 600.0
+
 function_groups:
   unstructured_transform:
     _type: mcp_client
@@ -30,12 +40,15 @@ function_groups:
       # The Unstructured Transform MCP server is served at the root path.
       url: https://mcp.transform.unstructured.io
       auth_provider: unstructured_auth
-    # The four tools that make up the asynchronous transform protocol.
+    # The four tools that make up the asynchronous transform protocol, plus the two
+    # structured data extraction tools.
     include:
       - request_file_upload_url
-      - transform_files
-      - check_transform_status
-      - get_transform_results
+      - start_transform_job
+      - suggest_extraction_schema_for_file
+      - start_extraction_job
+      - check_job_status
+      - get_job_results
 
 authentication:
   unstructured_auth:
@@ -58,6 +71,7 @@ workflow:
   _type: react_agent
   tool_names:
     - transform_document
+    - extract_structured_data
   llm_name: nim_llm
   verbose: true
   retry_parsing_errors: true

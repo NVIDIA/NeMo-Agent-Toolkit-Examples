@@ -113,6 +113,71 @@ async def test_transform_document_function_live(sample_pdf: Path):
 
 @pytest.mark.slow
 @pytest.mark.integration
+@pytest.mark.timeout(900)
+@pytest.mark.usefixtures("unstructured_api_key")
+async def test_extract_structured_data_function_live(sample_pdf: Path):
+    """Exercise the chained parse-then-extract flow against the live server, without an LLM.
+
+    Uses an explicit schema so the assertion does not depend on what the server would
+    draft; the no-schema path is covered by the unit tests.
+
+    This asserts the shape of the result rather than the extracted value. The fixture is a
+    synthetic one-sentence PDF, and while the parse reads it correctly, what the extractor
+    fills into the fields for so degenerate a document is not stable enough to assert on
+    (observed against production: a plausible-but-wrong value for one schema, and empty
+    strings for another). The contract this test protects is the chain itself: that the
+    parse hands its ``output_ref`` to the extractor, that the supplied schema shapes the
+    output, and that the provenance wrapper survives.
+    """
+    import json
+
+    from nat.builder.workflow_builder import WorkflowBuilder
+    from nat.runtime.loader import load_config
+    from nat.test.utils import locate_example_config
+    from nat_unstructured_transform_mcp.register import ExtractionTools
+    from nat_unstructured_transform_mcp.register import ExtractStructuredDataConfig
+    from nat_unstructured_transform_mcp.register import extract_source
+    from nat_unstructured_transform_mcp.register import resolve_tools
+
+    shipped_config = load_config(locate_example_config(ExtractStructuredDataConfig))
+    schema = json.dumps({
+        "type": "object",
+        "properties": {
+            "magic_word": {
+                "type": "string", "description": "The magic word stated in the document"
+            }
+        },
+        "required": ["magic_word"],
+        "additionalProperties": False,
+    })
+
+    async with WorkflowBuilder() as builder:
+        await builder.add_auth_provider("unstructured_auth", shipped_config.authentication["unstructured_auth"])
+        group = await builder.add_function_group("unstructured_transform",
+                                                 shipped_config.function_groups["unstructured_transform"])
+
+        tools = resolve_tools(await group.get_accessible_functions(), ExtractionTools)
+        config = ExtractStructuredDataConfig(poll_interval_seconds=3.0,
+                                             parse_timeout_seconds=600.0,
+                                             extraction_timeout_seconds=300.0)
+
+        result = await extract_source(tools, config, str(sample_pdf), extraction_schema=schema)
+
+    records = json.loads(result.records_json)
+    assert records, "Expected at least one extracted record"
+    assert result.schema_was_suggested is False
+
+    # The provenance wrapper is what ties each record back to the document it came from.
+    record = records[0]
+    assert {"filename", "filetype", "processed_date_utc", "source_file_uri"} <= set(record)
+    assert record["source_file_uri"].startswith("u10d://output/"), "Expected the parse Element JSON ref"
+
+    # The supplied schema shaped the output: its required field is present.
+    assert set(record["extracted_data"]) == {"magic_word"}
+
+
+@pytest.mark.slow
+@pytest.mark.integration
 @pytest.mark.timeout(1000)
 @pytest.mark.usefixtures("nvidia_api_key", "unstructured_api_key")
 async def test_full_workflow_live(sample_pdf: Path):

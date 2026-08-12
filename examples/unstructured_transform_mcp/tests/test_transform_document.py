@@ -79,14 +79,14 @@ class _FakeTransformService:
                 "file_ref": self.file_ref,
             })
 
-        async def _transform_files(**_kwargs) -> str:
+        async def _start_transform_job(**_kwargs) -> str:
             return json.dumps({"job_id": self.job_id, "status": "SCHEDULED"})
 
-        async def _check_transform_status(**_kwargs) -> str:
+        async def _check_job_status(**_kwargs) -> str:
             status = self.statuses.pop(0) if len(self.statuses) > 1 else self.statuses[0]
             return json.dumps({"job_id": self.job_id, "status": status})
 
-        async def _get_transform_results(**_kwargs) -> str:
+        async def _get_job_results(**_kwargs) -> str:
             return json.dumps({
                 "job_id":
                     self.job_id,
@@ -100,9 +100,9 @@ class _FakeTransformService:
 
         self.group_functions = {
             f"{_GROUP}__request_file_upload_url": _FakeTool("request_file_upload_url", _request_file_upload_url),
-            f"{_GROUP}__transform_files": _FakeTool("transform_files", _transform_files),
-            f"{_GROUP}__check_transform_status": _FakeTool("check_transform_status", _check_transform_status),
-            f"{_GROUP}__get_transform_results": _FakeTool("get_transform_results", _get_transform_results),
+            f"{_GROUP}__start_transform_job": _FakeTool("start_transform_job", _start_transform_job),
+            f"{_GROUP}__check_job_status": _FakeTool("check_job_status", _check_job_status),
+            f"{_GROUP}__get_job_results": _FakeTool("get_job_results", _get_job_results),
         }
 
     @property
@@ -146,9 +146,9 @@ async def test_local_file_transform(httpserver: HTTPServer, fast_config: Transfo
     assert upload_request_args["content_type"] == "application/pdf"
     assert upload_request_args["size_bytes"] == sample_document.stat().st_size
 
-    assert service.tool("transform_files").calls == [{"file_refs": [service.file_ref]}]
-    assert all(call == {"job_id": service.job_id} for call in service.tool("check_transform_status").calls)
-    assert service.tool("get_transform_results").calls == [{"job_id": service.job_id}]
+    assert service.tool("start_transform_job").calls == [{"file_refs": [service.file_ref]}]
+    assert all(call == {"job_id": service.job_id} for call in service.tool("check_job_status").calls)
+    assert service.tool("get_job_results").calls == [{"job_id": service.job_id}]
 
     put_requests = [request for request, _ in httpserver.log if request.method == "PUT"]
     assert len(put_requests) == 1
@@ -159,7 +159,7 @@ async def test_local_file_transform(httpserver: HTTPServer, fast_config: Transfo
 
 
 async def test_public_url_skips_upload(httpserver: HTTPServer, fast_config: TransformDocumentConfig):
-    """A public URL is passed straight to transform_files, skipping the upload step."""
+    """A public URL is passed straight to start_transform_job, skipping the upload step."""
     service = _FakeTransformService(httpserver, statuses=["COMPLETED"])
     url = "https://example.com/whitepaper.pdf"
 
@@ -167,7 +167,7 @@ async def test_public_url_skips_upload(httpserver: HTTPServer, fast_config: Tran
 
     assert result.markdown == service.markdown
     assert service.tool("request_file_upload_url").calls == []
-    assert service.tool("transform_files").calls == [{"file_refs": [url]}]
+    assert service.tool("start_transform_job").calls == [{"file_refs": [url]}]
 
 
 async def test_failed_job_raises(httpserver: HTTPServer, fast_config: TransformDocumentConfig, sample_document: Path):
@@ -216,7 +216,7 @@ async def test_results_not_ready_retries_until_available(httpserver: HTTPServer,
                                                          sample_document: Path):
     """The status endpoint can report COMPLETED slightly before the results exist."""
     service = _FakeTransformService(httpserver, statuses=["COMPLETED"])
-    real_results_tool = service.tool("get_transform_results")
+    real_results_tool = service.tool("get_job_results")
     not_ready_responses = 2
     attempts = []
 
@@ -230,7 +230,7 @@ async def test_results_not_ready_retries_until_available(httpserver: HTTPServer,
             })
         return await real_results_tool._handler(**kwargs)
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _flaky_results)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _flaky_results)
 
     result = await transform_source(service.tools, fast_config, str(sample_document))
 
@@ -247,7 +247,7 @@ async def test_tool_error_payload_raises(httpserver: HTTPServer,
     async def _unauthorized(**_kwargs) -> str:
         return json.dumps({"error": {"code": "unauthorized", "message": "Invalid API key", "status": 401}})
 
-    service.group_functions[f"{_GROUP}__transform_files"] = _FakeTool("transform_files", _unauthorized)
+    service.group_functions[f"{_GROUP}__start_transform_job"] = _FakeTool("start_transform_job", _unauthorized)
 
     with pytest.raises(RuntimeError, match="unauthorized"):
         await transform_source(service.tools, fast_config, str(sample_document))
@@ -271,9 +271,9 @@ async def test_non_json_tool_output_raises(httpserver: HTTPServer,
 def test_resolve_tools_reports_missing(httpserver: HTTPServer):
     """resolve_tools reports which required tool is absent from the group."""
     service = _FakeTransformService(httpserver, statuses=["COMPLETED"])
-    del service.group_functions[f"{_GROUP}__get_transform_results"]
+    del service.group_functions[f"{_GROUP}__get_job_results"]
 
-    with pytest.raises(ValueError, match="get_transform_results"):
+    with pytest.raises(ValueError, match="get_job_results"):
         resolve_tools(service.group_functions)  # type: ignore[arg-type]
 
 
@@ -310,7 +310,7 @@ async def test_results_error_not_retried(httpserver: HTTPServer,
     async def _unauthorized(**_kwargs) -> str:
         return json.dumps({"error": {"code": "unauthorized", "message": "Invalid API key", "status": 401}})
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _unauthorized)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _unauthorized)
 
     with pytest.raises(RuntimeError, match="unauthorized"):
         await transform_source(service.tools, fast_config, str(sample_document))
@@ -323,7 +323,7 @@ async def test_results_fetch_deadline(httpserver: HTTPServer, sample_document: P
     async def _never_ready(**_kwargs) -> str:
         return json.dumps({"error": {"code": "job_not_complete", "message": "not yet"}})
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _never_ready)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _never_ready)
     config = TransformDocumentConfig(poll_interval_seconds=0.01,
                                      transform_timeout_seconds=0.05,
                                      http_timeout_seconds=5.0)
@@ -341,7 +341,7 @@ async def test_empty_files_list_raises(httpserver: HTTPServer,
     async def _no_files(**_kwargs) -> str:
         return json.dumps({"job_id": service.job_id, "files": []})
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _no_files)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _no_files)
 
     with pytest.raises(RuntimeError, match="returned no files"):
         await transform_source(service.tools, fast_config, str(sample_document))
@@ -382,7 +382,7 @@ async def test_transient_status_blip_is_retried(httpserver: HTTPServer,
                                                 sample_document: Path):
     """A momentary transport failure during status polling must not abandon the job."""
     service = _FakeTransformService(httpserver, statuses=["IN_PROGRESS", "COMPLETED"])
-    real_status_tool = service.tool("check_transform_status")
+    real_status_tool = service.tool("check_job_status")
     blips = []
 
     async def _flaky_status(**kwargs) -> str:
@@ -391,7 +391,7 @@ async def test_transient_status_blip_is_retried(httpserver: HTTPServer,
             return "MCPToolClient tool call failed: connection reset"
         return await real_status_tool._handler(**kwargs)
 
-    service.group_functions[f"{_GROUP}__check_transform_status"] = _FakeTool("check_transform_status", _flaky_status)
+    service.group_functions[f"{_GROUP}__check_job_status"] = _FakeTool("check_job_status", _flaky_status)
 
     result = await transform_source(service.tools, fast_config, str(sample_document))
 
@@ -410,7 +410,7 @@ async def test_persistent_status_blips_raise(httpserver: HTTPServer,
         attempts.append(True)
         return "MCPToolClient tool call failed: connection reset"
 
-    service.group_functions[f"{_GROUP}__check_transform_status"] = _FakeTool("check_transform_status", _always_broken)
+    service.group_functions[f"{_GROUP}__check_job_status"] = _FakeTool("check_job_status", _always_broken)
 
     with pytest.raises(RuntimeError, match="Expected a JSON payload"):
         await transform_source(service.tools, fast_config, str(sample_document))
@@ -450,7 +450,7 @@ async def test_status_error_envelope_raises(httpserver: HTTPServer,
     async def _status_error(**_kwargs) -> str:
         return json.dumps({"error": {"code": "job_not_found", "message": "Job not found", "status": 404}})
 
-    service.group_functions[f"{_GROUP}__check_transform_status"] = _FakeTool("check_transform_status", _status_error)
+    service.group_functions[f"{_GROUP}__check_job_status"] = _FakeTool("check_job_status", _status_error)
 
     with pytest.raises(RuntimeError, match="job_not_found"):
         await transform_source(service.tools, fast_config, str(sample_document))
@@ -461,7 +461,7 @@ async def test_transient_results_blip_is_retried(httpserver: HTTPServer,
                                                  sample_document: Path):
     """A momentary transport failure during the results fetch is retried."""
     service = _FakeTransformService(httpserver, statuses=["COMPLETED"])
-    real_results_tool = service.tool("get_transform_results")
+    real_results_tool = service.tool("get_job_results")
     blips = []
 
     async def _flaky_results(**kwargs) -> str:
@@ -470,7 +470,7 @@ async def test_transient_results_blip_is_retried(httpserver: HTTPServer,
             return "MCPToolClient tool call failed: connection reset"
         return await real_results_tool._handler(**kwargs)
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _flaky_results)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _flaky_results)
 
     result = await transform_source(service.tools, fast_config, str(sample_document))
 
@@ -487,7 +487,7 @@ async def test_non_dict_files_entry_raises(httpserver: HTTPServer,
     async def _string_files(**_kwargs) -> str:
         return json.dumps({"job_id": service.job_id, "files": ["not-a-mapping"]})
 
-    service.group_functions[f"{_GROUP}__get_transform_results"] = _FakeTool("get_transform_results", _string_files)
+    service.group_functions[f"{_GROUP}__get_job_results"] = _FakeTool("get_job_results", _string_files)
 
     with pytest.raises(RuntimeError, match="unexpected files entry"):
         await transform_source(service.tools, fast_config, str(sample_document))
